@@ -1,0 +1,12 @@
+[submodule "Hyformer_Pytorch"]
+	path = Hyformer_Pytorch
+	url = https://github.com/sijitu666/Hyformer_Pytorch.git
+[submodule "OneTrans_Pytorch"]
+	path = OneTrans_Pytorch
+	url = https://github.com/sijitu666/OneTrans_Pytorch.git
+[submodule "system_prompt_analysis/cchistory"]
+	path = system_prompt_analysis/cchistory
+	url = https://github.com/badlogic/cchistory.git
+[submodule "system_prompt_analysis/claude-code-system-prompts"]
+	path = system_prompt_analysis/claude-code-system-prompts
+	url = https://github.com/Piebald-AI/claude-code-system-prompts.git
