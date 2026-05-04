@@ -1,0 +1,23 @@
+V5: 时间特征增强 (More Time Buckets)
+
+改进点:
+- num_time_buckets: 65 -> 129
+- 需要修改dataset.py中的BUCKET_BOUNDARIES数组
+
+原理:
+原始时间桶边界只有64个，对于长时间间隔的区分不够精细。
+增加桶边界数量，可以更细致地建模用户行为的时间衰减效应。
+
+修改方法:
+在dataset.py中，将BUCKET_BOUNDARIES数组扩展为128个元素，
+并在每个原有边界之间插入中间值，使时间建模更精细。
+
+预期效果:
+- 正向: 更好的时间衰减建模，可能改善AUC
+- 风险: 时间嵌入参数增加，需要更多数据
+
+参数对比:
+- 基线: NUM_TIME_BUCKETS = 65 (64个边界)
+- V5:  NUM_TIME_BUCKETS = 129 (128个边界)
+
+注意: 需要同步修改model.py中的num_time_buckets参数。

@@ -1,0 +1,20 @@
+V4: 序列编码器升级 (Transformer Encoder)
+
+改进点:
+- seq_encoder_type: swiglu -> transformer
+- use_rope: False -> True (启用RoPE位置编码)
+
+原理:
+将序列编码器从SwiGLU(无注意力)升级为Transformer Encoder(带自注意力)。
+Transformer编码器可以捕获序列内部的长距离依赖关系，
+配合RoPE位置编码，可以更好地建模序列的顺序信息。
+
+预期效果:
+- 正向: 提升序列建模能力，可能显著改善AUC
+- 风险: 计算量增加，训练时间变长
+
+参数对比:
+- 基线: --seq_encoder_type swiglu (无注意力)
+- V4:  --seq_encoder_type transformer --use_rope
+
+注意: transformer编码器使用自注意力，适合捕获序列内部的复杂模式。

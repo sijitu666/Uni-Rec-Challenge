@@ -1,0 +1,19 @@
+V1: 增加模型深度 (Deeper Model)
+
+改进点:
+- num_hyformer_blocks: 2 -> 3
+
+原理:
+增加HyFormer Block的堆叠层数，使模型能够学习更深层次的特征交互。
+每一层MultiSeqHyFormerBlock包含序列编码、查询解码和查询增强，
+增加层数可以让这些操作进行多次迭代，提升表达能力。
+
+预期效果:
+- 正向: 提升模型表达能力，可能改善AUC
+- 风险: 可能增加训练时间，需要注意过拟合
+
+参数对比:
+- 基线: --num_hyformer_blocks 2
+- V1:  --num_hyformer_blocks 3
+
+其他参数保持与基线一致。

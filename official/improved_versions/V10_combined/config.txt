@@ -1,0 +1,28 @@
+V10: 综合改进版本 (Combined Improvements)
+
+改进点组合:
+1. d_model: 64 -> 128 (更宽的模型)
+2. num_hyformer_blocks: 2 -> 3 (更深的模型)
+3. num_heads: 4 -> 8 (更多注意力头)
+4. seq_encoder_type: swiglu -> transformer (序列自注意力)
+5. use_rope: False -> True (启用RoPE位置编码)
+6. dropout_rate: 0.01 -> 0.2 (增强正则化)
+7. lr: 1e-4 -> 5e-5 (更稳定的学习率)
+8. loss_type: bce -> focal (处理类别不平衡)
+   - focal_alpha: 0.25
+   - focal_gamma: 2.0
+
+原理:
+综合多个经过验证的改进策略，从模型容量、正则化、
+优化方法和损失函数多个角度提升模型性能。
+
+预期效果:
+- 正向: 全面提升模型性能，预期AUC显著提升
+- 风险: 参数数量大幅增加，需要足够的训练数据和epoch
+
+参数总结:
+- 基线: d_model=64, blocks=2, heads=4, swiglu, lr=1e-4, bce
+- V10: d_model=128, blocks=3, heads=8, transformer+rope, lr=5e-5, focal
+
+注意: 这是一个较大的模型，训练时间会显著增加。
+建议使用early stopping来避免过拟合。

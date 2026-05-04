@@ -1,0 +1,21 @@
+V8: Focal Loss
+# 改进点:
+- loss_type: bce -> focal
+- focal_alpha: 0.25 (正值类别权重)
+- focal_gamma: 2.0 (聚焦参数)
+
+原理:
+数据集中负样本占比约85%，存在严重的类别不平衡。
+Focal Loss通过降低简单样本的权重，让模型更关注困难样本。
+alpha参数平衡正负样本，gamma参数控制聚焦程度。
+
+预期效果:
+- 正向: 处理类别不平衡，可能改善AUC
+- 风险: 如果alpha设置不当，可能损害性能
+
+参数对比:
+- 基线: --loss_type bce
+- V8:  --loss_type focal --focal_alpha 0.25 --focal_gamma 2.0
+
+注意: alpha值可以根据实际正负样本比例调整。
+如果正样本占15%，可以尝试alpha=0.15。

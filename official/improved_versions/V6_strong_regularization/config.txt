@@ -1,0 +1,20 @@
+V6: 正则化增强 (Strong Regularization)
+
+改进点:
+- dropout_rate: 0.01 -> 0.3
+
+原理:
+原始模型的dropout率很低(0.01)，可能导致过拟合。
+增加dropout率可以强制模型学习更鲁棒的特征表示，
+减少对其些特定特征的依赖。
+
+预期效果:
+- 正向: 减少过拟合，提升验证集AUC
+- 风险: dropout过高可能导致欠拟合
+
+参数对比:
+- 基线: --dropout_rate 0.01
+- V6:  --dropout_rate 0.3
+
+注意: 如果0.3效果不好，可以尝试0.1, 0.2等中间值。
+序列ID特征的dropout会自动设置为dropout_rate*2=0.6。
