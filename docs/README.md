@@ -1,100 +1,80 @@
-# 文档目录索引
+# 配置文档索引
 
-本文档库整理了项目中产生的各类Markdown文档，按主题分类存放。
+> 本文档索引了 Uni-Rec-Challenge 项目中所有配置和安装指南。
+
+## 文档列表
+
+| 工具/主题 | 文档 | 最后更新 | 说明 |
+|----------|------|----------|------|
+| **OpenRouter Usage Proxy** | [openrouter-usage-proxy-setup-guide.md](./openrouter-usage-proxy-setup-guide.md) | 2026-05-04 | OpenRouter 用量监控工具安装与配置完整指南 |
 
 ---
 
-## 📁 目录结构
+## 按类别分类
+
+### 监控与统计工具
+
+- [OpenRouter Usage Proxy 安装与配置](./openrouter-usage-proxy-setup-guide.md)
+  - 透明代理 + Web 仪表板
+  - 记录用量到 SQLite
+  - 实时查看 tokens、cost、model 等信息
+
+### OpenRouter 相关知识
+
+从 [openrouter-usage-proxy-setup-guide.md](./openrouter-usage-proxy-setup-guide.md) 中可以了解：
+
+1. **Activity 数据延迟**：1 天（J-1 规则）
+2. **第三方实时工具对比**：CostGoat、OpenRouterWidget、OpenRouter Usage Monitor 等
+3. **Node.js 版本兼容性**：better-sqlite3 与 Node 版本的对应问题
+4. **免费模型测试**：tencent/hy3-preview:free 等
+
+---
+
+## 如何使用配置记录 Agent
+
+当完成一个有价值的配置过程后，可以说：
 
 ```
-docs/
-├── project/                 # 项目相关文档
-├── ai-tools-comparison/     # AI编程工具对比结果
-├── research/                # 技术调研报告
-├── misc/                    # 其他文档
-└── README.md               # 本索引文件
+"把上面我们完整的对话过程中的有用知识记录成为一个md文档"
 ```
 
----
+Trae AI Assistant 会：
+1. 回顾最近对话，提取关键信息
+2. 创建结构化的 markdown 文档
+3. 保存到 `docs/` 目录
+4. 更新本索引文件
 
-## 📂 project/ - 项目相关文档
-
-与TAAC2026 CTR预测竞赛项目直接相关的文档。
-
-| 文件名 | 说明 |
-|--------|------|
-| [AGENTS.md](project/AGENTS.md) | 给AI Agent的项目概述和常用命令指南 |
-| [CLAUDE.md](project/CLAUDE.md) | Claude Code专用的项目指南 |
-| [compare_trae_kimi2.5.md](project/compare_trae_kimi2.5.md) | OneTrans vs Hyformer算法框架对比与运行指南 |
-| [exp_baselines.md](project/exp_baselines.md) | Baseline训练结果报告（OneTrans vs HyFormer） |
+详细配置记录规范见：[../trae_config.yaml](../trae_config.yaml)
 
 ---
 
-## 🤖 ai-tools-comparison/ - AI编程工具对比结果
+## 文档模板
 
-不同AI编程工具（Cursor、Trae、Windsurf、Copilot、Antigravity）的对比测试结果。
+所有配置文档应遵循以下结构：
 
-### 对比文档 (compare_*.md)
+```markdown
+# [工具名] 安装与配置指南
 
-| 文件名 | 说明 |
-|--------|------|
-| [compare_antigravity_gemini3.1pro.md](ai-tools-comparison/compare_antigravity_gemini3.1pro.md) | Antigravity + Gemini 3.1 Pro 对比结果 |
-| [compare_copilot_gpt5.2.md](ai-tools-comparison/compare_copilot_gpt5.2.md) | Copilot + GPT 5.2 对比结果 |
-| [compare_cursor_auto.md](ai-tools-comparison/compare_cursor_auto.md) | Cursor Auto 对比结果 |
-| [compare_trae_kimi2.5.md](ai-tools-comparison/compare_trae_kimi2.5.md) | Trae + Kimi 2.5 对比结果 |
-| [compare_windsurf_kimi2.5.md](ai-tools-comparison/compare_windsurf_kimi2.5.md) | Windsurf + Kimi 2.5 对比结果 |
+## 目录
+## 背景与问题
+## 安装过程
+## 测试与验证
+## 使用指南
+## 常见问题
+## 参考资料
+```
 
-### 导出文档 (export_*.md)
-
-| 文件名 | 说明 |
-|--------|------|
-| [export_antigravity.md](ai-tools-comparison/export_antigravity.md) | Antigravity 导出记录 |
-| [export_cursor.md](ai-tools-comparison/export_cursor.md) | Cursor 导出记录 |
-| [export_trae.md](ai-tools-comparison/export_trae.md) | Trae 导出记录 |
-| [export_windsurf.md](ai-tools-comparison/export_windsurf.md) | Windsurf 导出记录 |
-
-### 搜索/调研文档 (search_*.md)
-
-| 文件名 | 说明 |
-|--------|------|
-| [search_antigravity_gemini3.1pro.md](ai-tools-comparison/search_antigravity_gemini3.1pro.md) | Antigravity + Gemini 3.1 Pro 调研报告 |
-| [search_copilot_gpt5.2.md](ai-tools-comparison/search_copilot_gpt5.2.md) | Copilot + GPT 5.2 调研报告 |
-| [search_cursor_auto.md](ai-tools-comparison/search_cursor_auto.md) | Cursor Auto 调研报告 |
-| [search_trae_kimi2.5.md](ai-tools-comparison/search_trae_kimi2.5.md) | AI编程工具Hooks机制深度调研报告 |
-| [search_windsurf_kimi2.5.md](ai-tools-comparison/search_windsurf_kimi2.5.md) | Windsurf + Kimi 2.5 调研报告 |
+详细模板见：[../trae_config.yaml](../trae_config.yaml)
 
 ---
 
-## 🔬 research/ - 技术调研报告
+## 更新记录
 
-技术方案调研和实施计划文档。
-
-| 文件名 | 说明 |
-|--------|------|
-| [hooks机制日志记录.md](research/hooks机制日志记录.md) | Hooks机制实现日志记录方案调研结论 |
-| [飞书通知集成可执行计划.md](research/飞书通知集成可执行计划.md) | AI编程工具+飞书通知集成可执行计划 |
+| 日期 | 更新内容 |
+|------|----------|
+| 2026-05-04 | 初始创建索引，添加 openrouter-usage-proxy 配置文档 |
 
 ---
 
-## 📌 misc/ - 其他文档
-
-其他杂项文档。
-
-| 文件名 | 说明 |
-|--------|------|
-| [notebooklm_podcast_ideas.md](misc/notebooklm_podcast_ideas.md) | NotebookLM双人播客创意与脑洞玩法指南 |
-| [trae-kimi-2.5-coding-agent-learn.md](misc/trae-kimi-2.5-coding-agent-learn.md) | Trae Kimi 2.5 Coding Agent学习记录 |
-
----
-
-## 📊 统计信息
-
-- **总文档数**: 20
-- **项目文档**: 4
-- **AI工具对比**: 13 (5个对比 + 4个导出 + 4个调研)
-- **技术调研**: 2
-- **其他文档**: 2
-
----
-
-*最后更新: 2026-05-03*
+**维护者**：Trae AI Assistant  
+**最后更新**：2026-05-04
