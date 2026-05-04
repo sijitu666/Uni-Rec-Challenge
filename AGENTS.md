@@ -11,6 +11,49 @@ This is a research workspace for the TAAC2026 CTR (Click-Through Rate) predictio
 
 Both projects target the same dataset (`TAAC2026/data_sample_1000`) and share identical project structure and utilities.
 
+## Repository Structure
+
+This repository uses **git submodules** to manage dependent projects:
+
+```
+Uni-Rec-Challenge/
+├── official/                          # Official competition code
+├── Hyformer_Pytorch/                  # Submodule - HyFormer implementation
+│   └── https://github.com/sijitu666/Hyformer_Pytorch.git
+├── OneTrans_Pytorch/                  # Submodule - OneTrans implementation
+│   └── https://github.com/sijitu666/OneTrans_Pytorch.git
+├── system_prompt_analysis/
+│   ├── cchistory/                     # Submodule
+│   ├── claude-code-system-prompts/    # Submodule
+│   └── system-prompts-and-models-of-ai-tools/  # Submodule
+└── docs/                              # Documentation
+```
+
+### Branches
+
+- **main** - Main development branch (excludes improved_versions)
+- **hy3-preview-opt** - Contains `official/improved_versions/` optimization code
+
+## Clone and Setup
+
+### Clone with all submodules
+
+```bash
+git clone --recursive https://github.com/sijitu666/Uni-Rec-Challenge.git
+```
+
+### If already cloned without submodules
+
+```bash
+git submodule update --init --recursive
+```
+
+### Update submodules to latest
+
+```bash
+git submodule update --remote
+```
+
 ## Common Commands
 
 ### Backbone sanity check (shape demo, no data needed)
