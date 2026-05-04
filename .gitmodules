@@ -10,3 +10,6 @@
 [submodule "system_prompt_analysis/claude-code-system-prompts"]
 	path = system_prompt_analysis/claude-code-system-prompts
 	url = https://github.com/Piebald-AI/claude-code-system-prompts.git
+[submodule "system_prompt_analysis/system-prompts-and-models-of-ai-tools"]
+	path = system_prompt_analysis/system-prompts-and-models-of-ai-tools
+	url = https://github.com/x1xhlol/system-prompts-and-models-of-ai-tools.git
