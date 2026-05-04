@@ -1,0 +1,1452 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OneTrans 与 HyFormer 推荐算法入门图解</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2933;
+      --muted: #607083;
+      --line: #d7dee7;
+      --paper: #fbfcf8;
+      --surface: #ffffff;
+      --soft: #eef5f2;
+      --green: #1f8f71;
+      --green-dark: #12664f;
+      --coral: #d95f43;
+      --coral-soft: #fff0eb;
+      --gold: #bf7a12;
+      --gold-soft: #fff7df;
+      --blue: #2f72b8;
+      --blue-soft: #edf5ff;
+      --violet: #7257a8;
+      --violet-soft: #f3efff;
+      --shadow: 0 18px 45px rgba(31, 41, 51, 0.08);
+      --radius: 8px;
+      --max: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(180deg, rgba(238, 245, 242, 0.8), rgba(251, 252, 248, 0.92) 360px),
+        var(--paper);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      line-height: 1.65;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .shell {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 22px;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(215, 222, 231, 0.82);
+      background: rgba(251, 252, 248, 0.92);
+      backdrop-filter: blur(14px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 64px;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 230px;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, var(--green) 0 49%, transparent 50%),
+        linear-gradient(315deg, var(--coral) 0 49%, var(--gold) 50%);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      font-size: 14px;
+      color: #334155;
+    }
+
+    nav a {
+      border: 1px solid transparent;
+      border-radius: 999px;
+      padding: 6px 10px;
+    }
+
+    nav a:hover {
+      border-color: var(--line);
+      background: #fff;
+    }
+
+    main {
+      overflow: hidden;
+    }
+
+    section {
+      padding: 70px 0;
+    }
+
+    .hero {
+      padding: 54px 0 42px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(330px, 0.78fr);
+      gap: 34px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      border: 1px solid rgba(31, 143, 113, 0.28);
+      border-radius: 999px;
+      padding: 6px 11px;
+      background: rgba(255, 255, 255, 0.76);
+      color: var(--green-dark);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.16;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      max-width: 800px;
+      font-size: 62px;
+    }
+
+    h2 {
+      font-size: 40px;
+    }
+
+    h3 {
+      font-size: 20px;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 19px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 9px 15px;
+      background: var(--surface);
+      color: var(--ink);
+      font-weight: 720;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(31, 143, 113, 0.4);
+      box-shadow: 0 12px 26px rgba(31, 41, 51, 0.09);
+    }
+
+    .button.primary {
+      border-color: var(--green);
+      background: var(--green);
+      color: #fff;
+    }
+
+    .rank-demo {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: var(--shadow);
+    }
+
+    .phone-frame {
+      border: 10px solid #1f2933;
+      border-radius: 26px;
+      background: #f8fafc;
+      padding: 16px;
+      min-height: 420px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+    }
+
+    .phone-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .feed-item {
+      display: grid;
+      grid-template-columns: 58px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      margin: 10px 0;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    .thumb {
+      width: 58px;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(31, 143, 113, 0.25), rgba(217, 95, 67, 0.2)),
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.35) 0 8px, rgba(255, 255, 255, 0) 8px 16px);
+    }
+
+    .feed-item:nth-child(3) .thumb {
+      background:
+        linear-gradient(135deg, rgba(47, 114, 184, 0.28), rgba(191, 122, 18, 0.22)),
+        radial-gradient(circle at 72% 28%, rgba(255, 255, 255, 0.8), transparent 24%);
+    }
+
+    .feed-item:nth-child(4) .thumb {
+      background:
+        linear-gradient(135deg, rgba(114, 87, 168, 0.24), rgba(31, 143, 113, 0.23)),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.5), transparent);
+    }
+
+    .item-title {
+      font-weight: 760;
+      line-height: 1.25;
+    }
+
+    .item-meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .score {
+      min-width: 58px;
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: var(--green);
+      color: #fff;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 26px;
+    }
+
+    .section-head p {
+      max-width: 620px;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      background: var(--surface);
+      box-shadow: 0 12px 28px rgba(31, 41, 51, 0.05);
+    }
+
+    .card h3 {
+      margin-bottom: 10px;
+    }
+
+    .card p,
+    .card li {
+      color: var(--muted);
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .tag {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: #fff;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .tag.green {
+      border-color: rgba(31, 143, 113, 0.28);
+      background: var(--soft);
+      color: var(--green-dark);
+    }
+
+    .tag.coral {
+      border-color: rgba(217, 95, 67, 0.32);
+      background: var(--coral-soft);
+      color: #9f3f2b;
+    }
+
+    .tag.blue {
+      border-color: rgba(47, 114, 184, 0.28);
+      background: var(--blue-soft);
+      color: #245e9b;
+    }
+
+    .tag.gold {
+      border-color: rgba(191, 122, 18, 0.3);
+      background: var(--gold-soft);
+      color: #8a560b;
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      align-items: stretch;
+      margin-top: 24px;
+    }
+
+    .pipe-step {
+      position: relative;
+      min-height: 116px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      background: #fff;
+    }
+
+    .pipe-step::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -9px;
+      width: 16px;
+      height: 2px;
+      background: var(--line);
+    }
+
+    .pipe-step:last-child::after {
+      display: none;
+    }
+
+    .step-kicker {
+      color: var(--green-dark);
+      font-size: 12px;
+      font-weight: 850;
+      text-transform: uppercase;
+    }
+
+    .pipe-step strong {
+      display: block;
+      margin: 4px 0;
+    }
+
+    .pipe-step span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .visual-panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 20px;
+    }
+
+    .flow-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .flow-title p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .token-lane {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 14px;
+      border-radius: 8px;
+      background: #f8fafc;
+      min-height: 74px;
+    }
+
+    .token {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 58px;
+      min-height: 34px;
+      border: 1px solid rgba(31, 41, 51, 0.12);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: #102a43;
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .token.ns {
+      background: var(--soft);
+      color: var(--green-dark);
+    }
+
+    .token.seq {
+      background: var(--blue-soft);
+      color: #245e9b;
+    }
+
+    .token.query {
+      background: var(--coral-soft);
+      color: #9f3f2b;
+    }
+
+    .token.out {
+      background: var(--gold-soft);
+      color: #8a560b;
+    }
+
+    .down-arrow {
+      width: 2px;
+      height: 26px;
+      margin: 6px auto;
+      background: var(--line);
+      position: relative;
+    }
+
+    .down-arrow::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      width: 9px;
+      height: 9px;
+      border-right: 2px solid var(--line);
+      border-bottom: 2px solid var(--line);
+      transform: translateX(-50%) rotate(45deg);
+    }
+
+    .compress {
+      display: grid;
+      gap: 8px;
+    }
+
+    .compress-row {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      min-height: 34px;
+    }
+
+    .mini-token {
+      width: 34px;
+      height: 24px;
+      border-radius: 7px;
+      background: var(--blue-soft);
+      border: 1px solid rgba(47, 114, 184, 0.18);
+    }
+
+    .mini-token.keep {
+      background: var(--soft);
+      border-color: rgba(31, 143, 113, 0.22);
+    }
+
+    .mini-token.fade {
+      opacity: 0.3;
+    }
+
+    .branch-board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .branch {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #f8fafc;
+    }
+
+    .branch strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .branch .token-lane {
+      padding: 0;
+      background: transparent;
+      min-height: 0;
+    }
+
+    .mix-box {
+      border: 1px dashed rgba(31, 143, 113, 0.46);
+      border-radius: 8px;
+      padding: 14px;
+      background: rgba(238, 245, 242, 0.66);
+    }
+
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .compare-table th,
+    .compare-table td {
+      border-bottom: 1px solid var(--line);
+      padding: 14px 16px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .compare-table th {
+      background: #f8fafc;
+      font-size: 14px;
+    }
+
+    .compare-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .callout {
+      border-left: 5px solid var(--green);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      background: #fff;
+      box-shadow: 0 12px 28px rgba(31, 41, 51, 0.05);
+    }
+
+    .callout strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .example-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .example {
+      display: grid;
+      grid-template-columns: 108px 1fr;
+      gap: 14px;
+      align-items: stretch;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .example-visual {
+      display: grid;
+      place-items: center;
+      min-height: 100%;
+      background:
+        linear-gradient(135deg, rgba(31, 143, 113, 0.2), rgba(47, 114, 184, 0.18)),
+        #f8fafc;
+      font-size: 32px;
+      font-weight: 900;
+      color: rgba(31, 41, 51, 0.72);
+    }
+
+    .example:nth-child(2) .example-visual {
+      background:
+        linear-gradient(135deg, rgba(217, 95, 67, 0.22), rgba(191, 122, 18, 0.18)),
+        #f8fafc;
+    }
+
+    .example:nth-child(3) .example-visual {
+      background:
+        linear-gradient(135deg, rgba(114, 87, 168, 0.2), rgba(31, 143, 113, 0.18)),
+        #f8fafc;
+    }
+
+    .example-copy {
+      padding: 15px 16px 15px 0;
+    }
+
+    .example-copy strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .example-copy span {
+      color: var(--muted);
+    }
+
+    .code-map {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .code-line {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 12px;
+      align-items: start;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: #fff;
+    }
+
+    code {
+      color: #29415d;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.94em;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab-button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 13px;
+      background: #fff;
+      color: #334155;
+      font: inherit;
+      font-weight: 760;
+      cursor: pointer;
+    }
+
+    .tab-button.active {
+      border-color: var(--green);
+      background: var(--green);
+      color: #fff;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .quiz {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      background: #fff;
+    }
+
+    .choice-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .choice {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #f8fafc;
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+    }
+
+    .choice strong {
+      display: block;
+    }
+
+    .choice span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .choice.selected {
+      border-color: var(--green);
+      background: var(--soft);
+    }
+
+    .quiz-result {
+      margin-top: 14px;
+      color: var(--green-dark);
+      font-weight: 760;
+      min-height: 28px;
+    }
+
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 28px 0 44px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .grid.two,
+      .grid.three {
+        grid-template-columns: 1fr;
+      }
+
+      .pipeline {
+        grid-template-columns: 1fr;
+      }
+
+      .pipe-step::after {
+        display: none;
+      }
+
+      .branch-board,
+      .choice-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        padding: 0 16px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 12px 0;
+      }
+
+      nav {
+        justify-content: flex-start;
+      }
+
+      section {
+        padding: 48px 0;
+      }
+
+      .hero {
+        padding-top: 34px;
+      }
+
+      .phone-frame {
+        min-height: auto;
+        border-width: 8px;
+      }
+
+      .feed-item {
+        grid-template-columns: 48px 1fr;
+      }
+
+      h1 {
+        font-size: 38px;
+      }
+
+      h2 {
+        font-size: 30px;
+      }
+
+      .score {
+        grid-column: 2;
+        width: fit-content;
+      }
+
+      .example,
+      .code-line {
+        grid-template-columns: 1fr;
+      }
+
+      .example-copy {
+        padding: 0 14px 14px;
+      }
+
+      .example-visual {
+        min-height: 84px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="shell topbar">
+      <a class="brand" href="#top" aria-label="返回顶部">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>推荐算法入门图解</span>
+      </a>
+      <nav aria-label="页面目录">
+        <a href="#basics">推荐基础</a>
+        <a href="#repo">仓库框架</a>
+        <a href="#onetrans">OneTrans</a>
+        <a href="#hyformer">HyFormer</a>
+        <a href="#compare">怎么选</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div>
+          <span class="eyebrow">TAAC2026 CTR 预测 · 两个 PyTorch 实现</span>
+          <h1>把 OneTrans 和 HyFormer 讲成一套“推荐系统看人、看商品、看行为”的故事</h1>
+          <p class="lead">
+            这个页面面向推荐算法新手：先理解 CTR 推荐到底在预测什么，再看两个仓库如何把用户画像、商品特征、历史行为序列变成 token，最后输出“这个用户会不会点”的概率。
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#basics">从基础开始</a>
+            <a class="button" href="#onetrans">看 OneTrans 图解</a>
+            <a class="button" href="#hyformer">看 HyFormer 图解</a>
+          </div>
+        </div>
+
+        <div class="rank-demo" aria-label="推荐排序示意">
+          <div class="phone-frame">
+            <div class="phone-top">
+              <span>首页推荐流</span>
+              <span>按点击概率排序</span>
+            </div>
+            <div class="feed-item">
+              <div class="thumb" aria-hidden="true"></div>
+              <div>
+                <div class="item-title">运动耳机</div>
+                <div class="item-meta">用户最近看过跑步鞋和健身视频</div>
+              </div>
+              <div class="score">0.82</div>
+            </div>
+            <div class="feed-item">
+              <div class="thumb" aria-hidden="true"></div>
+              <div>
+                <div class="item-title">轻食套餐券</div>
+                <div class="item-meta">午饭时间，附近商圈，价格合适</div>
+              </div>
+              <div class="score">0.69</div>
+            </div>
+            <div class="feed-item">
+              <div class="thumb" aria-hidden="true"></div>
+              <div>
+                <div class="item-title">编程课程</div>
+                <div class="item-meta">历史行为相关，但当前场景弱一些</div>
+              </div>
+              <div class="score">0.41</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="basics">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <h2>先把推荐算法讲清楚</h2>
+          </div>
+          <p>
+            CTR 模型不是“猜用户喜欢什么”的玄学，而是在做一个很具体的二分类问题：给定用户、商品、场景和历史行为，预测这次曝光会不会被点击。
+          </p>
+        </div>
+
+        <div class="grid three">
+          <article class="card">
+            <h3>输入是什么</h3>
+            <p>推荐模型会同时看静态信息和动态行为。静态信息像年龄段、城市、商品类目、价格；动态行为像最近看过、点过、买过、停留过什么。</p>
+            <div class="tag-row">
+              <span class="tag green">用户画像</span>
+              <span class="tag blue">商品特征</span>
+              <span class="tag gold">上下文</span>
+              <span class="tag coral">行为序列</span>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>输出是什么</h3>
+            <p>模型输出一个分数，比如 0.82。它通常可以理解成“当前用户点击当前候选内容的概率”。推荐系统会拿很多候选内容的分数排序。</p>
+            <div class="tag-row">
+              <span class="tag green">CTR</span>
+              <span class="tag blue">排序分数</span>
+              <span class="tag gold">二分类</span>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>训练靠什么</h3>
+            <p>每条曝光记录都有标签：点了是正样本，没点是负样本。模型不断比较“预测概率”和“真实点击”，把参数调到更会排序。</p>
+            <div class="tag-row">
+              <span class="tag coral">label</span>
+              <span class="tag green">loss</span>
+              <span class="tag blue">AUC</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="pipeline" aria-label="推荐系统流程">
+          <div class="pipe-step">
+            <div class="step-kicker">Step 1</div>
+            <strong>收集候选</strong>
+            <span>先从海量内容里粗筛出几百个可能相关的商品或视频。</span>
+          </div>
+          <div class="pipe-step">
+            <div class="step-kicker">Step 2</div>
+            <strong>拼特征</strong>
+            <span>把用户、商品、时间、地点、历史行为整理成数值向量。</span>
+          </div>
+          <div class="pipe-step">
+            <div class="step-kicker">Step 3</div>
+            <strong>模型打分</strong>
+            <span>CTR 模型预测每个候选被点击的可能性。</span>
+          </div>
+          <div class="pipe-step">
+            <div class="step-kicker">Step 4</div>
+            <strong>排序展示</strong>
+            <span>把高分内容排到更靠前的位置，同时考虑业务约束。</span>
+          </div>
+          <div class="pipe-step">
+            <div class="step-kicker">Step 5</div>
+            <strong>反馈学习</strong>
+            <span>用户点击、跳过、购买都会变成下一轮训练数据。</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="repo">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <h2>两个仓库的共同骨架</h2>
+          </div>
+          <p>
+            OneTrans_Pytorch 和 Hyformer_Pytorch 不是两个完全无关的工程。它们共享同样的三层结构：底层 backbone 写算法，中间 task wrapper 接 TAAC 数据，最外层 training script 负责跑训练。
+          </p>
+        </div>
+
+        <div class="grid three">
+          <article class="card">
+            <h3>Backbone</h3>
+            <p><code>main_pytorch.py</code> 放模型核心积木。OneTrans 这里是 token 压缩 Transformer；HyFormer 这里是序列编码、query decoding、query boosting。</p>
+          </article>
+          <article class="card">
+            <h3>Task Wrapper</h3>
+            <p><code>models/taac_*.py</code> 把 TAAC 特征变成模型需要的 token，再接一个分类 head 输出点击类别 logits。</p>
+          </article>
+          <article class="card">
+            <h3>Training Script</h3>
+            <p><code>scripts/run_taac2026_sample.py</code> 负责加载样本数据、切训练集验证集、AMP、训练循环、AUC 和 checkpoint。</p>
+          </article>
+        </div>
+
+        <div class="code-map">
+          <div class="code-line">
+            <code>OneTrans_Pytorch</code>
+            <span>默认把数据整理成 <code>non_seq=(N, 183)</code> 和 <code>seq=(N, 16, 45)</code>。非序列特征会变成 <code>ns_len</code> 个伪 token，行为序列每一步变成一个 seq token。</span>
+          </div>
+          <div class="code-line">
+            <code>Hyformer_Pytorch</code>
+            <span>默认把序列特征分成 <code>num_sequences=3</code> 个分支，形成 <code>seq=(N, 3, 16, 15)</code>。每个分支都有自己的 query token 去读取该分支行为。</span>
+          </div>
+          <div class="code-line">
+            <code>utils/taac_data.py</code>
+            <span>负责 schema 检测、数值清洗、序列 padding、数组统计特征。HyFormer 版本额外做了 sequence grouping。</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="onetrans">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <h2>OneTrans：把所有信息排成一串，再逐步压缩</h2>
+          </div>
+          <p>
+            可以把 OneTrans 想成一次会议：用户画像、候选商品、历史行为都写成卡片，所有卡片坐在一排互相交流。最后会议纪要只保留前面的“非序列 summary 卡片”。
+          </p>
+        </div>
+
+        <div class="grid two">
+          <div class="visual-panel">
+            <div class="flow-title">
+              <h3>OneTrans 数据流</h3>
+              <p>绿色是非序列伪 token，蓝色是行为序列 token。</p>
+            </div>
+
+            <div class="token-lane" aria-label="输入 token">
+              <span class="token ns">画像 1</span>
+              <span class="token ns">画像 2</span>
+              <span class="token ns">画像 3</span>
+              <span class="token ns">画像 4</span>
+              <span class="token seq">行为 1</span>
+              <span class="token seq">行为 2</span>
+              <span class="token seq">行为 3</span>
+              <span class="token seq">行为 4</span>
+            </div>
+            <div class="down-arrow" aria-hidden="true"></div>
+
+            <div class="compress" aria-label="金字塔压缩">
+              <div class="compress-row">
+                <span class="mini-token keep"></span>
+                <span class="mini-token keep"></span>
+                <span class="mini-token keep"></span>
+                <span class="mini-token keep"></span>
+                <span class="mini-token"></span>
+                <span class="mini-token"></span>
+                <span class="mini-token"></span>
+                <span class="mini-token"></span>
+              </div>
+              <div class="compress-row">
+                <span class="mini-token keep"></span>
+                <span class="mini-token keep"></span>
+                <span class="mini-token keep"></span>
+                <span class="mini-token keep"></span>
+                <span class="mini-token"></span>
+                <span class="mini-token"></span>
+                <span class="mini-token"></span>
+                <span class="mini-token fade"></span>
+              </div>
+              <div class="compress-row">
+                <span class="mini-token keep"></span>
+                <span class="mini-token keep"></span>
+                <span class="mini-token keep"></span>
+                <span class="mini-token keep"></span>
+                <span class="mini-token"></span>
+                <span class="mini-token fade"></span>
+                <span class="mini-token fade"></span>
+                <span class="mini-token fade"></span>
+              </div>
+              <div class="compress-row">
+                <span class="mini-token keep"></span>
+                <span class="mini-token keep"></span>
+                <span class="mini-token keep"></span>
+                <span class="mini-token keep"></span>
+                <span class="mini-token fade"></span>
+                <span class="mini-token fade"></span>
+                <span class="mini-token fade"></span>
+                <span class="mini-token fade"></span>
+              </div>
+            </div>
+            <div class="down-arrow" aria-hidden="true"></div>
+
+            <div class="token-lane" aria-label="输出">
+              <span class="token out">点击概率</span>
+              <span class="tag green">pool</span>
+              <span class="tag coral">classification head</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>它到底做了什么</h3>
+            <p>
+              仓库里的 <code>TAACOneTransClassifier</code> 先用线性层把 <code>non_seq</code> 变成 <code>ns_len</code> 个伪 token，把 <code>seq</code> 的每个时间步变成序列 token，然后拼成 <code>[ns_tokens, seq_tokens]</code>。
+            </p>
+            <p style="margin-top:12px;">
+              <code>MultiOneTransBlock</code> 会做多组 OneTransBlock 并取平均。每个 block 里有 attention 和 FFN。特别之处是：前 <code>ns_len</code> 个 token 各自有一套参数，后面的序列 token 共用一套参数。
+            </p>
+            <p style="margin-top:12px;">
+              金字塔压缩阶段每次少看一个 query token，直到只剩 <code>ns_len</code> 个 summary token。最后 mean pooling，再接分类头。
+            </p>
+            <div class="tag-row">
+              <span class="tag green">统一建模</span>
+              <span class="tag blue">token 交互</span>
+              <span class="tag gold">逐步压缩</span>
+              <span class="tag coral">CTR head</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="example-list">
+          <div class="example">
+            <div class="example-visual">1</div>
+            <div class="example-copy">
+              <strong>电商例子</strong>
+              <span>用户是“上海、常买数码、晚上浏览”，最近依次看了手机壳、充电宝、耳机。OneTrans 会把画像卡片和这三次行为卡片放在同一排，让“耳机”这张卡影响最终的用户兴趣 summary。</span>
+            </div>
+          </div>
+          <div class="example">
+            <div class="example-visual">2</div>
+            <div class="example-copy">
+              <strong>为什么要压缩</strong>
+              <span>真实推荐里行为很长，全部保留会慢。OneTrans 像写会议纪要：每轮讨论后丢掉一点细节，但把有用信息吸收到 summary token 里。</span>
+            </div>
+          </div>
+          <div class="example">
+            <div class="example-visual">3</div>
+            <div class="example-copy">
+              <strong>mask 的直觉</strong>
+              <span>mask 控制哪些 token 可以互相看。比如行为序列可以按时间只看过去，非序列 summary token 可以更自由地吸收全局信息。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="hyformer">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <h2>HyFormer：先分行为频道，再派 query 去提问</h2>
+          </div>
+          <p>
+            HyFormer 的思路更像客服系统：不同类型行为放到不同频道，每个频道有一个专门的问题 query 去问“这个频道里哪些行为对当前推荐最重要？”问完以后再把所有答案和非序列特征混在一起。
+          </p>
+        </div>
+
+        <div class="grid two">
+          <div class="visual-panel">
+            <div class="flow-title">
+              <h3>HyFormer 数据流</h3>
+              <p>每个序列分支都有自己的 query，然后统一 boost。</p>
+            </div>
+
+            <div class="branch-board">
+              <div class="branch">
+                <strong>频道 A</strong>
+                <div class="token-lane">
+                  <span class="token seq">看</span>
+                  <span class="token seq">点</span>
+                  <span class="token seq">停留</span>
+                </div>
+              </div>
+              <div class="branch">
+                <strong>频道 B</strong>
+                <div class="token-lane">
+                  <span class="token seq">搜</span>
+                  <span class="token seq">加购</span>
+                  <span class="token seq">买</span>
+                </div>
+              </div>
+              <div class="branch">
+                <strong>频道 C</strong>
+                <div class="token-lane">
+                  <span class="token seq">类目</span>
+                  <span class="token seq">品牌</span>
+                  <span class="token seq">价格</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="token-lane" aria-label="query 解码">
+              <span class="token query">Query A</span>
+              <span class="token query">Query B</span>
+              <span class="token query">Query C</span>
+              <span class="tag coral">cross-attention</span>
+            </div>
+            <div class="down-arrow" aria-hidden="true"></div>
+
+            <div class="mix-box">
+              <div class="token-lane" aria-label="query boost">
+                <span class="token query">答案 A</span>
+                <span class="token query">答案 B</span>
+                <span class="token query">答案 C</span>
+                <span class="token ns">用户画像</span>
+                <span class="token ns">商品信息</span>
+              </div>
+            </div>
+            <div class="down-arrow" aria-hidden="true"></div>
+            <div class="token-lane" aria-label="HyFormer 输出">
+              <span class="token out">点击概率</span>
+              <span class="tag green">boosted tokens</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>它到底做了什么</h3>
+            <p>
+              <code>TAACHyFormerClassifier</code> 把非序列特征变成 <code>num_non_seq_tokens</code> 个 token，把序列特征按 <code>num_sequences</code> 分组，每组用自己的 tokenizer。
+            </p>
+            <p style="margin-top:12px;">
+              它先把所有序列做 mean pooling，加上原始非序列向量，形成 <code>global_info</code>。然后每个序列分支用一个 MLP 生成自己的 query token。
+            </p>
+            <p style="margin-top:12px;">
+              每层 HyFormer 先做 <code>Query Decoding</code>：query 通过 cross-attention 读取对应序列；再做 <code>Query Boosting</code>：把 query 答案和非序列 token 用 MLP-Mixer 风格模块混合。
+            </p>
+            <div class="tag-row">
+              <span class="tag coral">query decoding</span>
+              <span class="tag green">query boosting</span>
+              <span class="tag blue">多序列</span>
+              <span class="tag gold">可换 encoder</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid three" style="margin-top:18px;">
+          <article class="card">
+            <h3><code>longer</code></h3>
+            <p>先把长序列按窗口压短，再用短 query 做 cross-attention。直觉是“先粗略分段，再挑重点”，更省计算。</p>
+          </article>
+          <article class="card">
+            <h3><code>full_transformer</code></h3>
+            <p>标准 self-attention。序列内部每一步都可以互相看，表达力强，但长序列时计算更重。</p>
+          </article>
+          <article class="card">
+            <h3><code>swiglu</code></h3>
+            <p>不用 attention，用门控前馈网络做序列表示。速度更轻，适合快速验证或计算预算紧张的场景。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="compare">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <h2>两个算法怎么放在一起理解</h2>
+          </div>
+          <p>
+            它们都在解决 CTR 里的同一个核心问题：既要理解用户长期画像和候选商品，也要理解最近行为序列。区别是信息组织方式不同。
+          </p>
+        </div>
+
+        <table class="compare-table" aria-label="OneTrans 与 HyFormer 对比">
+          <thead>
+            <tr>
+              <th>问题</th>
+              <th>OneTrans</th>
+              <th>HyFormer</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>核心比喻</td>
+              <td>所有卡片坐一排开会，最后写成几张 summary 卡片。</td>
+              <td>每个行为频道派一个 query 去提问，再把答案汇总。</td>
+            </tr>
+            <tr>
+              <td>输入组织</td>
+              <td><code>[ns_tokens, seq_tokens]</code> 拼成一条 token 序列。</td>
+              <td>非序列 token 单独保留，行为序列分成多个 branch。</td>
+            </tr>
+            <tr>
+              <td>序列处理</td>
+              <td>序列 token 在统一 Transformer 里参与交互，然后被逐步压缩。</td>
+              <td>每个序列 branch 先编码，再由 query cross-attention 读取。</td>
+            </tr>
+            <tr>
+              <td>特征交互</td>
+              <td>attention + FFN，非序列 token 有独立参数组。</td>
+              <td>query decoding 后，用 QueryBoostMixer 混合 query 和非序列 token。</td>
+            </tr>
+            <tr>
+              <td>适合理解成</td>
+              <td>“统一建模 + 信息压缩”的 Transformer CTR 模型。</td>
+              <td>“序列建模”和“特征交互”分工更清楚的 CTR 模型。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="grid two" style="margin-top:18px;">
+          <div class="callout">
+            <strong>推荐算法小白的第一条主线</strong>
+            <p>先别纠结论文名。你只要记住：推荐模型把用户、商品、上下文、行为序列变成向量；模型学习这些向量之间的关系；最后输出点击概率并排序。</p>
+          </div>
+          <div class="callout" style="border-left-color: var(--coral);">
+            <strong>看实验结果时的提醒</strong>
+            <p>这个仓库用的是 <code>TAAC2026/data_sample_1000</code> 小样本，AUC 接近随机是正常现象。它更适合验证代码链路和理解算法框架，不适合证明模型最终效果。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="examples">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <h2>三个实际例子</h2>
+          </div>
+          <p>
+            用生活里的推荐场景把“非序列特征”和“序列特征”分开看，会更容易理解两个模型为什么这样设计。
+          </p>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="示例切换">
+          <button class="tab-button active" type="button" data-tab="shop">电商</button>
+          <button class="tab-button" type="button" data-tab="video">短视频</button>
+          <button class="tab-button" type="button" data-tab="local">本地生活</button>
+        </div>
+
+        <div class="tab-panel active" id="shop" role="tabpanel">
+          <div class="grid two">
+            <div class="card">
+              <h3>电商推荐</h3>
+              <p>非序列特征：用户城市、会员等级、商品价格、品牌、当前时间。序列特征：最近浏览、收藏、加购、购买的商品序列。</p>
+            </div>
+            <div class="card">
+              <h3>模型怎么用</h3>
+              <p>OneTrans 会把这些信息放到一条 token 流里压缩。HyFormer 会把浏览、加购、购买等行为分成不同频道，让 query 分别提取“最近真正想买什么”。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="video" role="tabpanel">
+          <div class="grid two">
+            <div class="card">
+              <h3>短视频推荐</h3>
+              <p>非序列特征：用户设备、网络、地区、视频作者、视频主题。序列特征：最近看完的视频、快速划走的视频、点赞评论的视频。</p>
+            </div>
+            <div class="card">
+              <h3>模型怎么用</h3>
+              <p>如果用户刚连续看了健身内容，序列 token 会强烈影响当前分数。但如果候选视频和用户长期兴趣冲突，非序列 token 也会参与修正。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="local" role="tabpanel">
+          <div class="grid two">
+            <div class="card">
+              <h3>本地生活推荐</h3>
+              <p>非序列特征：城市、距离、价格、营业状态、是否周末。序列特征：最近搜索的商圈、点击的店铺、购买过的券。</p>
+            </div>
+            <div class="card">
+              <h3>模型怎么用</h3>
+              <p>午饭时间看到轻食券和深夜看到火锅券，点击概率不一样。上下文特征和行为序列一起决定排序。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz" style="margin-top:18px;">
+          <h3>小测试：下面哪个最像“序列特征”？</h3>
+          <div class="choice-grid">
+            <button class="choice" type="button" data-answer="wrong">
+              <strong>用户所在城市</strong>
+              <span>通常是静态或上下文特征。</span>
+            </button>
+            <button class="choice" type="button" data-answer="right">
+              <strong>最近 16 次点击商品</strong>
+              <span>按时间排列，能反映兴趣变化。</span>
+            </button>
+            <button class="choice" type="button" data-answer="wrong">
+              <strong>候选商品价格</strong>
+              <span>这是当前候选 item 的属性。</span>
+            </button>
+          </div>
+          <div class="quiz-result" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell">
+      页面对应当前仓库结构：<code>OneTrans_Pytorch</code>、<code>Hyformer_Pytorch</code>、TAAC2026 CTR 样本训练脚本。内容为面向入门理解的算法框架解释。
+    </div>
+  </footer>
+
+  <script>
+    const tabButtons = document.querySelectorAll(".tab-button");
+    const tabPanels = document.querySelectorAll(".tab-panel");
+
+    tabButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const target = button.dataset.tab;
+        tabButtons.forEach((item) => item.classList.toggle("active", item === button));
+        tabPanels.forEach((panel) => panel.classList.toggle("active", panel.id === target));
+      });
+    });
+
+    const choices = document.querySelectorAll(".choice");
+    const quizResult = document.querySelector(".quiz-result");
+
+    choices.forEach((choice) => {
+      choice.addEventListener("click", () => {
+        choices.forEach((item) => item.classList.remove("selected"));
+        choice.classList.add("selected");
+        quizResult.textContent = choice.dataset.answer === "right"
+          ? "对。按时间排列的历史行为就是典型序列特征。"
+          : "还差一点。序列特征的关键是按时间排列的一串行为。";
+      });
+    });
+  </script>
+</body>
+</html>

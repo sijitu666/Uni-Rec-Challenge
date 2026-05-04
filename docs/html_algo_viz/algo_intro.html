@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>推荐算法入门 · OneTrans 与 HyFormer 图解</title>
+<style>
+  :root {
+    --bg: #0f1220;
+    --panel: #181b2e;
+    --panel-2: #1f2340;
+    --accent: #7c5cff;
+    --accent-2: #22d3ee;
+    --warm: #ffb86b;
+    --pink: #ff6bcb;
+    --green: #4ade80;
+    --text: #e7e9f5;
+    --muted: #9aa0bf;
+    --border: #2a2f55;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: linear-gradient(180deg, #0b0e1c 0%, #0f1220 100%);
+    color: var(--text);
+    line-height: 1.75;
+  }
+  header {
+    padding: 60px 24px 40px;
+    text-align: center;
+    background: radial-gradient(ellipse at top, rgba(124, 92, 255, 0.25), transparent 60%);
+  }
+  header h1 {
+    margin: 0 0 12px;
+    font-size: 2.2rem;
+    background: linear-gradient(90deg, #7c5cff, #22d3ee, #ff6bcb);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  header p { color: var(--muted); margin: 0; font-size: 1.05rem; }
+  .container { max-width: 980px; margin: 0 auto; padding: 0 24px 80px; }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin: 24px 0;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  }
+  section h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  section h2::before {
+    content: "";
+    width: 6px; height: 28px;
+    background: linear-gradient(180deg, var(--accent), var(--accent-2));
+    border-radius: 3px;
+  }
+  h3 { color: var(--accent-2); margin-top: 28px; }
+  p, li { color: var(--text); }
+  .muted { color: var(--muted); font-size: 0.95rem; }
+  code {
+    background: #2a2f55;
+    color: #ffd479;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "JetBrains Mono", Menlo, monospace;
+    font-size: 0.9em;
+  }
+  .example {
+    background: var(--panel-2);
+    border-left: 4px solid var(--warm);
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin: 16px 0;
+  }
+  .example strong { color: var(--warm); }
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .card {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .card h4 { margin: 0 0 10px; color: var(--accent); }
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    background: rgba(124,92,255,0.18);
+    color: #c4b5fd;
+    margin-right: 6px;
+  }
+
+  /* 流程可视化 */
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 22px 0;
+  }
+  .token {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+  }
+  .ns { background: rgba(124,92,255,0.22); border-color: var(--accent); color: #d6cbff; }
+  .seq { background: rgba(34,211,238,0.18); border-color: var(--accent-2); color: #b6f1ff; }
+  .arrow { color: var(--muted); font-size: 1.3rem; }
+
+  /* 金字塔 */
+  .pyramid { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 20px 0; }
+  .pyramid-row { display: flex; gap: 6px; }
+  .block {
+    width: 32px; height: 28px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #7c5cff, #22d3ee);
+    box-shadow: 0 2px 6px rgba(124,92,255,0.4);
+  }
+  .block.dim { background: rgba(255,255,255,0.08); box-shadow: none; }
+  .pyramid-label { font-size: 0.85rem; color: var(--muted); margin-left: 12px; }
+
+  /* HyFormer 分支 */
+  .branches {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .branch {
+    background: var(--panel-2);
+    border-top: 3px solid var(--pink);
+    border-radius: 0 0 10px 10px;
+    padding: 14px;
+    text-align: center;
+  }
+  .branch:nth-child(2) { border-top-color: var(--accent-2); }
+  .branch:nth-child(3) { border-top-color: var(--warm); }
+  .branch h5 { margin: 0 0 8px; }
+  .branch p { font-size: 0.85rem; color: var(--muted); margin: 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.95rem;
+  }
+  th, td {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    text-align: left;
+  }
+  th { background: var(--panel-2); color: var(--accent-2); }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+  .step {
+    display: flex;
+    gap: 14px;
+    margin: 12px 0;
+    align-items: flex-start;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold;
+    color: white;
+  }
+  .step-body { flex: 1; }
+  .step-body strong { color: var(--accent-2); }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: 30px 20px;
+  }
+  @media (max-width: 720px) {
+    .compare, .branches { grid-template-columns: 1fr; }
+    section { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>推荐算法入门：OneTrans 与 HyFormer 图解</h1>
+  <p>从一次刷淘宝说起，讲懂这两篇论文到底在做什么</p>
+</header>
+
+<div class="container">
+
+<!-- ========== 第 1 部分：什么是推荐算法 ========== -->
+<section>
+  <h2>① 推荐算法到底在解什么问题？</h2>
+
+  <p>
+    打开淘宝、抖音、B 站，你看到的每一张图、每一条视频，背后都有一个模型在悄悄回答一个问题：
+  </p>
+
+  <div class="example">
+    <strong>核心问题：</strong>"如果我把这个商品/视频塞给这个用户，他点的概率有多大？"
+    <br><br>
+    这个概率就叫 <code>CTR (Click-Through Rate，点击率)</code>。
+    系统会对几千个候选物品都算一遍 CTR，然后把概率最高的几个放在屏幕最显眼的位置。
+  </div>
+
+  <h3>一个简单的例子：小明刷淘宝</h3>
+
+  <p>假设小明今天打开淘宝，系统手里有这些信息：</p>
+
+  <table>
+    <tr><th>信息类型</th><th>内容</th><th>专业叫法</th></tr>
+    <tr><td>小明本人</td><td>男，25 岁，杭州，最近常逛"运动鞋"</td><td>用户特征</td></tr>
+    <tr><td>当前候选物品</td><td>一双 Nike 跑鞋，899 元，4.8 分</td><td>物品特征</td></tr>
+    <tr><td>当前情境</td><td>晚上 22:00，WiFi 连接，首页 feed 流</td><td>上下文特征</td></tr>
+    <tr><td>小明的历史</td><td>过去 30 天点过的 50 个商品（带时间顺序）</td><td><b>序列特征</b></td></tr>
+  </table>
+
+  <p>
+    前三类信息是"一个值就够了"——比如年龄就是 25。我们叫它
+    <span class="pill">非序列特征 (non-sequential)</span>。
+  </p>
+  <p>
+    最后一类不一样：它是一串<b>有顺序的</b>历史行为，最近的可能更重要，更早的可能不那么重要。
+    我们叫它 <span class="pill">序列特征 (sequential)</span>。
+  </p>
+
+  <div class="example">
+    <strong>类比：</strong>这就像你判断一个朋友想吃什么：
+    <ul>
+      <li>"他是个广东人" → 非序列特征（一个标签就够）</li>
+      <li>"他这周连续吃了：火锅 → 烧烤 → 麻辣烫 → 川菜" → 序列特征（顺序很重要！下一顿大概率想吃清淡的）</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ========== 第 2 部分：为什么要用 Transformer ========== -->
+<section>
+  <h2>② 为什么推荐系统也开始用 Transformer？</h2>
+
+  <p>
+    早期推荐模型（比如经典的 LR、Wide&Deep、DeepFM）擅长处理"特征交叉"——比如发现
+    "男性 + 运动鞋 + 周末"这三个特征组合在一起会让点击率显著上升。
+  </p>
+
+  <p>
+    但它们处理"用户的历史行为序列"很笨拙——通常就是把 50 个商品的 embedding 简单加起来求平均，
+    完全丢掉了顺序。
+  </p>
+
+  <p>
+    Transformer 在 NLP（ChatGPT 那一类）里证明了：它特别擅长处理"一串带顺序的东西"。
+    所以推荐系统的人就想：能不能把用户的"特征"和"历史行为"都当成 token，
+    一起塞进 Transformer 让它一次性搞定？
+  </p>
+
+  <div class="example">
+    <strong>类比：</strong>把推荐场景想象成一个"翻译任务"：
+    <ul>
+      <li>输入是：用户画像 + 历史行为 + 当前候选物品（一串"词"）</li>
+      <li>输出是：一个分数（点 / 不点）</li>
+    </ul>
+    既然 Transformer 能把"中文"翻译成"英文"，自然也能把"用户状态"翻译成"点击概率"。
+  </div>
+
+  <p>
+    <b>OneTrans</b> 和 <b>HyFormer</b> 就是两种把推荐问题"塞进 Transformer"的不同思路。
+    下面我们一个一个看。
+  </p>
+</section>
+
+<!-- ========== 第 3 部分：OneTrans ========== -->
+<section>
+  <h2>③ OneTrans：金字塔式的"信息浓缩"</h2>
+
+  <p class="muted">论文：OneTrans - Unified Feature Interaction and Sequence Modeling with One Transformer</p>
+
+  <h3>核心思想：把所有东西排成一串 token，然后慢慢"压缩"</h3>
+
+  <p>OneTrans 把每条样本变成一长串 token：</p>
+
+  <div class="flow">
+    <div class="token ns">用户 token</div>
+    <div class="token ns">物品 token</div>
+    <div class="token ns">情境 token</div>
+    <span class="arrow">|</span>
+    <div class="token seq">行为 1</div>
+    <div class="token seq">行为 2</div>
+    <div class="token seq">行为 3</div>
+    <div class="token seq">…</div>
+    <div class="token seq">行为 16</div>
+  </div>
+
+  <p>
+    左边紫色的几个是 <b>"非序列伪 token"</b>（论文里叫 <code>ns_tokens</code>），
+    它们其实是把用户/物品/情境这些"扁平特征"切成 <code>ns_len</code> 块（比如 3~4 块），
+    每块投影成一个 token。
+  </p>
+  <p>
+    右边蓝色的是<b>序列 token</b>（用户的真实历史行为），按时间排好。
+  </p>
+
+  <h3>关键技巧 1：不同 token 用不同的"大脑"</h3>
+
+  <p>
+    标准 Transformer 里所有 token 共享同一套 Q/K/V 投影矩阵。
+    OneTrans 觉得这不公平——"用户画像 token"和"第 7 个历史商品 token"性质完全不同，
+    应该用不同的参数处理：
+  </p>
+  <ul>
+    <li>前 <code>ns_len</code> 个非序列 token，<b>每个 token 一套独立参数</b></li>
+    <li>后面所有序列 token，<b>共享同一套参数</b>（因为它们性质相同，都是"历史行为"）</li>
+  </ul>
+
+  <div class="example">
+    <strong>类比：</strong>想象你在面试一个人：
+    <ul>
+      <li>问简历问题用一个套路（对应"用户 token"的专属参数）</li>
+      <li>问技术问题用另一个套路（对应"物品 token"的专属参数）</li>
+      <li>问"举几个项目例子"时，每个项目都用同一套追问模板（对应序列 token 共享参数）</li>
+    </ul>
+  </div>
+
+  <h3>关键技巧 2：金字塔压缩</h3>
+
+  <p>每过一层，query 的长度就缩短一些，把序列信息一点点"挤"进前面的非序列 token 里：</p>
+
+  <div class="pyramid">
+    <div class="pyramid-row">
+      <div class="block"></div><div class="block"></div><div class="block"></div>
+      <div class="block"></div><div class="block"></div><div class="block"></div>
+      <div class="block"></div><div class="block"></div>
+      <span class="pyramid-label">第 1 层：8 个 query</span>
+    </div>
+    <div class="pyramid-row">
+      <div class="block"></div><div class="block"></div><div class="block"></div>
+      <div class="block"></div><div class="block"></div><div class="block"></div>
+      <div class="block dim"></div><div class="block dim"></div>
+      <span class="pyramid-label">第 2 层：6 个</span>
+    </div>
+    <div class="pyramid-row">
+      <div class="block"></div><div class="block"></div><div class="block"></div>
+      <div class="block"></div>
+      <div class="block dim"></div><div class="block dim"></div>
+      <div class="block dim"></div><div class="block dim"></div>
+      <span class="pyramid-label">第 3 层：4 个</span>
+    </div>
+    <div class="pyramid-row">
+      <div class="block"></div><div class="block"></div><div class="block"></div>
+      <div class="block dim"></div><div class="block dim"></div>
+      <div class="block dim"></div><div class="block dim"></div>
+      <div class="block dim"></div>
+      <span class="pyramid-label">最终：只剩 ns_tokens</span>
+    </div>
+  </div>
+
+  <p>最后只剩下前面那几个非序列 token，它们已经"吸收"了所有序列信息，被送进分类头算 CTR。</p>
+
+  <div class="example">
+    <strong>类比：</strong>就像你向老板汇报项目：
+    <ul>
+      <li>第一遍：把 50 件事都讲一遍</li>
+      <li>第二遍：合并成 30 件</li>
+      <li>第三遍：合并成 10 件</li>
+      <li>最后：浓缩成"3 句话总结"——这 3 句话就是要交给最终决策的"非序列 token"。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ========== 第 4 部分：HyFormer ========== -->
+<section>
+  <h2>④ HyFormer：多支序列 + Query 解码</h2>
+
+  <p class="muted">论文：HyFormer - Revisiting the Roles of Sequence Modeling and Feature Interaction in CTR Prediction</p>
+
+  <h3>核心思想：用户的行为不是一条流，而是好几条平行的流</h3>
+
+  <p>
+    HyFormer 注意到一个现实问题：用户的"历史"其实有<b>很多种类型</b>，把它们硬塞进一条序列不太合理。
+    比如在淘宝里：
+  </p>
+
+  <div class="branches">
+    <div class="branch">
+      <h5>支线 1：点击序列</h5>
+      <p>最近 16 个点过的商品</p>
+    </div>
+    <div class="branch">
+      <h5>支线 2：购买序列</h5>
+      <p>最近 16 个买过的商品</p>
+    </div>
+    <div class="branch">
+      <h5>支线 3：搜索序列</h5>
+      <p>最近 16 个搜过的关键词</p>
+    </div>
+  </div>
+
+  <p>
+    HyFormer 把它们叫做 <code>num_sequences</code> 个序列分支，每条分支独立编码。
+    （在本仓库的代码里，因为 sample 数据里没有显式区分，所以是把检测到的序列特征自动均分到 3 组。）
+  </p>
+
+  <h3>关键技巧 1：为每条支线"造一个问题"（Query）</h3>
+
+  <p>
+    HyFormer 不让序列直接输出，而是先生成一些"问题 token"（query），
+    再让 query 去"问"每条序列：
+  </p>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>收集全局信息：</strong>把非序列特征 + 每条序列的"平均值摘要"拼起来，
+      得到一个能代表"用户当前状态"的全局向量。
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>生成 query：</strong>用这个全局向量过一个 MLP，为每条序列分支造几个专属的 query token。
+      你可以理解为："基于我现在的状态，我想去问点击历史的什么？想去问购买历史的什么？"
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>Query Decoding（查询解码）：</strong>每个 query 通过 cross-attention，
+      去对应的序列里"取答案"。
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <strong>Query Boosting（查询增强）：</strong>把所有 query 的答案 + 非序列 token
+      丢进一个 MLP-Mixer 风格的小模块里互相混合，让"问到的答案"和"原始特征"再交互一遍。
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-body">
+      <strong>反复几层后</strong>，把最终增强过的 token pool 一下，送进分类头。
+    </div>
+  </div>
+
+  <div class="example">
+    <strong>类比：</strong>HyFormer 就像一个侦探破案：
+    <ul>
+      <li>侦探（query）不是直接读完所有证人的笔录，</li>
+      <li>而是<b>先想好问题</b>："死者最近见过谁？""有没有买过凶器？""有没有搜过相关地点？"</li>
+      <li>然后<b>有针对性地问每个证人</b>（cross-attention）。</li>
+      <li>最后把答案汇总到白板上重新组合（query boosting）。</li>
+    </ul>
+    比起 OneTrans"把所有信息排成一队从头读到尾"，HyFormer 更像"带着问题去查档案"，效率更高。
+  </div>
+
+  <h3>关键技巧 2：序列编码器有三种可选</h3>
+
+  <table>
+    <tr><th>模式</th><th>做法</th><th>类比</th></tr>
+    <tr>
+      <td><code>longer</code></td>
+      <td>用短 query 对长序列做 cross-attention 压缩</td>
+      <td>"用几个关键问题快速扫一遍 50 页文档"</td>
+    </tr>
+    <tr>
+      <td><code>full_transformer</code></td>
+      <td>标准的 Transformer self-attention</td>
+      <td>"逐字逐句细读，每句都和其他句对照"</td>
+    </tr>
+    <tr>
+      <td><code>swiglu</code></td>
+      <td>纯 FFN，不用 attention</td>
+      <td>"不互相对比，每条信息独立加工后再拼起来"，最快但最粗</td>
+    </tr>
+  </table>
+</section>
+
+<!-- ========== 第 5 部分：对比 ========== -->
+<section>
+  <h2>⑤ 一图对比：OneTrans vs HyFormer</h2>
+
+  <div class="compare">
+    <div class="card">
+      <h4>OneTrans</h4>
+      <p><b>结构：</b>单一 token 序列 + 金字塔压缩</p>
+      <p><b>序列形状：</b><code>[B, 16, 45]</code> 一条长流</p>
+      <p><b>核心动作：</b>所有 token 排队 → 逐层"挤水"</p>
+      <p><b>参数策略：</b>非序列 token 一个一个独立参数；序列 token 共享一套</p>
+      <p><b>类比：</b>"一锅炖" → 慢慢收汁</p>
+    </div>
+    <div class="card">
+      <h4>HyFormer</h4>
+      <p><b>结构：</b>多分支序列 + Query 解码 + Query Boosting</p>
+      <p><b>序列形状：</b><code>[B, 3, 16, 15]</code> 三条平行流</p>
+      <p><b>核心动作：</b>先造问题 → 分头去问 → 答案再混合</p>
+      <p><b>参数策略：</b>每条序列分支独立编码器，query 由全局信息生成</p>
+      <p><b>类比：</b>"分头侦察" → 汇总情报</p>
+    </div>
+  </div>
+
+  <h3>它们要解决的"通用难题"是一样的</h3>
+  <ol>
+    <li>怎么把<b>非序列特征</b>和<b>序列特征</b>放进同一个模型？</li>
+    <li>怎么让模型不只是"加权平均"，而是真的<b>理解顺序</b>？</li>
+    <li>怎么<b>压缩</b>到最后只用很少的向量做出预测，又不丢信息？</li>
+  </ol>
+  <p>OneTrans 的回答是"金字塔挤压"，HyFormer 的回答是"带问题查询"。这就是它们最大的分歧。</p>
+</section>
+
+<!-- ========== 第 6 部分：训练流程 ========== -->
+<section>
+  <h2>⑥ 训练流程到底在做什么？</h2>
+
+  <p>这两个仓库都跑同一个数据集 <code>TAAC2026/data_sample_1000</code>（1000 条样本，800 训练 / 200 验证）：</p>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body"><strong>数据加载</strong>：把每条样本变成 <code>(非序列特征向量, 序列特征张量, 标签 0/1)</code> 三元组。</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body"><strong>前向</strong>：模型吐出一个 0~1 之间的概率（点击概率）。</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body"><strong>损失</strong>：用二分类交叉熵 (BCE) 比对预测和真实标签。</div>
+  </div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-body"><strong>评价</strong>：算 <b>AUC</b>（不是 accuracy！因为正负样本极不平衡，约 85% 都是"没点击"，全猜 0 也能拿 85% 准确率，但 AUC 才能反映模型真实区分能力）。</div>
+  </div>
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-body"><strong>保存</strong>：每个 epoch 看 val AUC 是不是新高，是的话就 checkpoint。</div>
+  </div>
+
+  <div class="example">
+    <strong>当前结果：</strong>
+    OneTrans 最佳 val AUC ≈ 0.51，HyFormer ≈ 0.53，都接近随机猜（0.5）。
+    <br>
+    这是<b>正常的</b>——只有 1000 条样本，主要用于代码跑通验证。真实比赛是百万级数据，差距会拉开。
+  </div>
+</section>
+
+<!-- ========== 第 7 部分：术语速查 ========== -->
+<section>
+  <h2>⑦ 一页术语速查</h2>
+  <table>
+    <tr><th>术语</th><th>白话解释</th></tr>
+    <tr><td><b>CTR</b></td><td>点击率，模型要预测的目标</td></tr>
+    <tr><td><b>Token</b></td><td>把任何东西（特征、行为）都变成一个等长向量，方便 Transformer 处理</td></tr>
+    <tr><td><b>Embedding</b></td><td>把"商品 ID = 12345"这种离散值变成一个 64 维向量的查表过程</td></tr>
+    <tr><td><b>Attention</b></td><td>"我（query）去看其他人（key），按相关程度加权平均他们的内容（value）"</td></tr>
+    <tr><td><b>Cross-attention</b></td><td>query 来自 A，key/value 来自 B（"A 去问 B 问题"）</td></tr>
+    <tr><td><b>Self-attention</b></td><td>query/key/value 都来自同一组 token（"自己跟自己对话"）</td></tr>
+    <tr><td><b>FFN / MLP</b></td><td>普通的全连接前馈网络，作用是"再加工"每个 token</td></tr>
+    <tr><td><b>SwiGLU</b></td><td>一种比 ReLU 更强的激活函数，被 LLaMA 等大模型广泛使用</td></tr>
+    <tr><td><b>AUC</b></td><td>衡量模型对正负样本排序能力，0.5=随机，1.0=完美</td></tr>
+    <tr><td><b>AMP</b></td><td>混合精度训练，用 fp16/bf16 加速，省显存</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>⑧ 想动手玩一下？</h2>
+  <p>两个项目都可以一行命令跑通：</p>
+  <p><b>看模型骨架的 shape 流转（不需要数据）：</b></p>
+  <p><code>cd OneTrans_Pytorch && python main_pytorch.py</code></p>
+  <p><code>cd Hyformer_Pytorch && python main_pytorch.py</code></p>
+  <p><b>真正训练（会自动下载 1000 条样本数据）：</b></p>
+  <p><code>python scripts/run_taac2026_sample.py --epochs 5 --batch-size 32</code></p>
+  <p class="muted">
+    建议读代码顺序：先 <code>main_pytorch.py</code>（架构本身）→ 再 <code>models/taac_*.py</code>（怎么包成分类器）→ 最后 <code>scripts/run_taac2026_sample.py</code>（训练流程）。
+  </p>
+</section>
+
+</div>
+
+<footer>
+  本页基于 OneTrans_Pytorch / Hyformer_Pytorch 两个仓库的 README 与代码整理，面向推荐算法初学者
+</footer>
+
+</body>
+</html>

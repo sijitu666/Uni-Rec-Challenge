@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>论文 + 代码速读：OneTrans 与 HyFormer（CTR 长序列建模）</title>
+    <!-- 引入数学公式渲染库 MathJax -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- 引入字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b1120;
+            --bg-gradient: radial-gradient(circle at 10% 20%, #1e293b 0%, #0b1120 90%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-hover: rgba(51, 65, 85, 0.8);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #38bdf8;
+            --accent-purple: #c084fc;
+            --accent-pink: #f472b6;
+            --accent-green: #34d399;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background: var(--bg-color);
+            background-image: var(--bg-gradient);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            padding: 6rem 2rem 4rem;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 4rem;
+        }
+
+        /* 核心区卡片样式 */
+        .paper-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 3rem;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .paper-section:hover {
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* 顶部彩色装饰条 */
+        .paper-section::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 5px;
+        }
+        .paper-section.onetrans::before { background: linear-gradient(90deg, var(--accent-blue), var(--accent-green)); }
+        .paper-section.hyformer::before { background: linear-gradient(90deg, var(--accent-pink), var(--accent-purple)); }
+
+        .paper-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .paper-meta {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sect { margin-bottom: 3rem; }
+        .sect h3 {
+            font-size: 1.4rem;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            border-left: 4px solid var(--accent-blue);
+            padding-left: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .hyformer .sect h3 { border-left-color: var(--accent-pink); }
+
+        p { margin-bottom: 1rem; }
+
+        /* 内容板块样式 */
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        @media (min-width: 992px) {
+            .grid-2col { grid-template-columns: 1fr 1fr; }
+        }
+
+        .tech-box {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+        .tech-box h4 {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.35rem 1rem;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-bottom: 0.8rem;
+        }
+        .badge.bg-blue { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); }
+        .badge.bg-purple { background: rgba(192, 132, 252, 0.15); color: var(--accent-purple); }
+        .badge.bg-pink { background: rgba(244, 114, 182, 0.15); color: var(--accent-pink); }
+        .badge.bg-green { background: rgba(52, 211, 153, 0.15); color: var(--accent-green); }
+        
+        ul { list-style: none; margin-left: 0.5rem; }
+        li { margin-bottom: 1rem; position: relative; padding-left: 1.8rem; color: var(--text-primary); }
+        li::before {
+            content: "✦";
+            color: var(--accent-blue);
+            position: absolute;
+            left: 0;
+            font-size: 1.2rem;
+            line-height: 1.4;
+        }
+        .hyformer li::before { color: var(--accent-pink); }
+
+        .highlight { color: #f8fafc; font-weight: 600; text-decoration: underline; text-decoration-color: var(--accent-blue); }
+        .hyformer .highlight { text-decoration-color: var(--accent-pink); }
+
+        .diagram-container {
+            background: #0f172a;
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            box-shadow: inset 0 2px 15px rgba(0,0,0,0.3);
+            overflow-x: auto;
+        }
+
+        /* 比较表格段落 */
+        .compare-section {
+            grid-column: 1 / -1;
+            margin-top: 2rem;
+        }
+        
+        .result-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 1.5rem;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        .result-table th, .result-table td {
+            text-align: left;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .result-table th { 
+            background: rgba(255,255,255,0.03); 
+            color: var(--text-secondary); 
+            font-weight: 700; 
+            text-transform: uppercase;
+        }
+        .result-table td { color: var(--text-primary); }
+        .result-table tr:last-child td { border-bottom: none; }
+        .result-table tr:hover td { background: rgba(255,255,255,0.02); }
+        
+        strong.metrics { color: var(--accent-green); font-size: 1.1rem; }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0.1rem 0.35rem;
+            border-radius: 8px;
+            color: var(--text-primary);
+        }
+
+    </style>
+    <!-- Mermaid JS Configuration -->
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({ 
+          startOnLoad: true, 
+          theme: 'dark',
+          themeVariables: {
+              primaryColor: '#1e293b',
+              primaryTextColor: '#f8fafc',
+              primaryBorderColor: '#475569',
+              lineColor: '#94a3b8',
+              secondaryColor: '#334155',
+              tertiaryColor: '#0f172a'
+          },
+          flowchart: {
+              curve: 'basis'
+          }
+      });
+    </script>
+</head>
+<body>
+
+    <header>
+        <h1>OneTrans 与 HyFormer：论文 + 代码视角速读</h1>
+        <p class="subtitle">
+            目标：用“一页 HTML”把两篇方法的 <strong>motivation / method / experiments</strong> 讲清楚，并且从 <strong>模块输入输出、张量形状、数据流、训练脚本与数据格式</strong> 的角度对齐到你当前仓库的 PyTorch 复现。
+            <br>
+            注：本页面尽量避免引用无法从论文摘要/仓库文件直接核对的具体线上数值，重点以可复现的代码路径与 sample 实验为准。
+        </p>
+    </header>
+
+    <main>
+        <!-- Context / Data / Training -->
+        <article class="paper-section">
+            <h2 class="paper-title">先把问题说清楚：CTR 预测里“序列建模”和“特征交互”到底在干嘛？</h2>
+            <div class="paper-meta">
+                这部分完全对齐本仓库的可运行实现：TAAC2026 sample 数据 → 张量化 → 训练脚本 → AUC。
+            </div>
+
+            <div class="sect">
+                <h3>任务与输出 (Task)</h3>
+                <div class="grid-2col">
+                    <div class="tech-box">
+                        <h4>CTR/行为预测 = 分类</h4>
+                        <ul>
+                            <li>训练目标：给定一条样本（用户、候选 item、上下文、历史行为序列），预测类别/是否点击。</li>
+                            <li>本仓库训练：使用 <strong>CrossEntropyLoss</strong>（二分类时等价于 softmax 版本的 log-loss）。</li>
+                            <li>评估：主指标是 <strong>AUC</strong>（样本类别不平衡时比 accuracy 更可靠）。</li>
+                        </ul>
+                    </div>
+                    <div class="tech-box">
+                        <h4>为什么要“统一骨干 / 统一交互”？</h4>
+                        <ul>
+                            <li>传统范式常见路径：<strong>先压缩长序列</strong> → 得到少量序列表征 → 再与非序列特征做<strong>高阶交互</strong>。</li>
+                            <li>两篇论文都在挑战这个“先压缩再交互”的隔离：它会让<strong>非序列信息无法早期影响序列建模</strong>，并且让模型扩展（更深/更宽）受限。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sect">
+                <h3>数据格式与张量化 (Data → Tensors)</h3>
+                <p>训练脚本会从 HuggingFace 数据集 <strong>TAAC2026/data_sample_1000</strong> 读取样本，然后在 <code>utils/taac_data.py</code> 做 schema 检测与特征向量化。</p>
+                <div class="grid-2col">
+                    <div class="tech-box">
+                        <h4>非序列特征 non_seq</h4>
+                        <ul>
+                            <li>标量特征：直接取值 → <code>log1p</code> 型压缩（避免极端数值）。</li>
+                            <li>数组特征：提取统计量（mean/std/min/max/last/length）拼到 non_seq 向量。</li>
+                            <li>本仓库 sample 实际维度：<strong>non_seq_dim = 183</strong>（见 run_metadata）。</li>
+                        </ul>
+                    </div>
+                    <div class="tech-box">
+                        <h4>序列特征 seq</h4>
+                        <ul>
+                            <li>OneTrans 版本：把所有序列通道堆成一个矩阵 <code>[seq_len, seq_feature_dim]</code>。</li>
+                            <li>HyFormer 版本：为了对齐论文的“多序列分支”接口，把序列通道<strong>自动分组</strong>成 <code>num_sequences</code> 份，得到 <code>[num_sequences, seq_len, seq_feature_dim]</code>（不足维度会 0 padding）。</li>
+                            <li>本仓库 sample：OneTrans 的 <strong>seq_feature_dim = 45</strong>；HyFormer 分 3 组，每组 15 维（最大维度 15）。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sect">
+                <h3>训练流程 (Training Loop)</h3>
+                <div class="grid-2col">
+                    <div class="tech-box">
+                        <h4>最小可复现实验</h4>
+                        <ul>
+                            <li>数据切分：<strong>800/200</strong>（val_ratio=0.2，随机种子固定）。</li>
+                            <li>优化器：<strong>AdamW</strong>（lr=1e-3，weight_decay=1e-4）。</li>
+                            <li>自动混合精度：CUDA 上默认开启；CPU/macOS 默认关闭。</li>
+                        </ul>
+                    </div>
+                    <div class="tech-box">
+                        <h4>这份仓库当前跑出来的 best AUC</h4>
+                        <ul>
+                            <li>HyFormer（checkpoint: 2026-04-19 02:09:19）：<strong class="metrics">best_val_auc = 0.5318</strong></li>
+                            <li>OneTrans（checkpoint: 2026-04-19 02:09:21）：<strong class="metrics">best_val_auc = 0.5116</strong></li>
+                            <li>解释：sample 数据仅用于代码验证，AUC 接近随机是正常现象；看方法差异主要看结构与可扩展性。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <!-- OneTrans Section -->
+        <article class="paper-section onetrans">
+            <h2 class="paper-title">OneTrans：用一个 Transformer 同时做序列建模 + 特征交互</h2>
+            <div class="paper-meta">
+                论文核心：统一 Token 序列 + 混合参数化 + 金字塔式查询长度缩减。仓库对应实现：<code>OneTrans_Pytorch/main_pytorch.py</code> + <code>OneTrans_Pytorch/models/taac_onetrans.py</code>。
+            </div>
+            
+            <div class="sect">
+                <h3>Motivation：为什么要“统一”？</h3>
+                <ul>
+                    <li><strong>打破信息隔离：</strong>传统两阶段（序列 encoder → 交互模块）让非序列特征无法早期影响序列表示。</li>
+                    <li><strong>工程上更像 LLM：</strong>统一骨干更容易继承成熟优化（KV cache、flash attention、混精等）。</li>
+                    <li><strong>可扩展性：</strong>把“序列建模能力”和“交互能力”放到同一个深网络里一起涨。</li>
+                </ul>
+            </div>
+
+            <div class="sect">
+                <h3>模块 I/O：从张量形状看 OneTrans（对齐仓库实现）</h3>
+                <div class="grid-2col">
+                    <div class="tech-box">
+                        <h4>输入 → Tokenizer</h4>
+                        <ul>
+                            <li>输入：<code>non_seq_x</code> 形状 <strong>[B, non_seq_dim]</strong>；<code>seq_x</code> 形状 <strong>[B, seq_len, seq_feature_dim]</strong></li>
+                            <li>非序列 tokenizer：Linear → reshape 得到 <strong>[B, ns_len, d_model]</strong></li>
+                            <li>序列 tokenizer：Linear 得到 <strong>[B, seq_len, d_model]</strong></li>
+                            <li>拼接：<strong>[B, ns_len + seq_len, d_model]</strong></li>
+                        </ul>
+                    </div>
+                    <div class="tech-box">
+                        <h4>输出 → Head</h4>
+                        <ul>
+                            <li>金字塔压缩后只剩 <strong>[B, ns_len, d_model]</strong></li>
+                            <li>池化：mean over tokens → <strong>[B, d_model]</strong></li>
+                            <li>分类头：LayerNorm → MLP → logits <strong>[B, num_classes]</strong></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="diagram-container">
+                    <pre class="mermaid">
+                    flowchart TD
+                        A[non_seq_x\n[B, non_seq_dim]] --> B[Linear → reshape\nns_tokens [B, ns_len, d_model]]
+                        C[seq_x\n[B, seq_len, seq_feature_dim]] --> D[Linear\nseq_tokens [B, seq_len, d_model]]
+                        B --> E[concat\n[B, ns_len+seq_len, d_model]]
+                        D --> E
+                        E --> F[Base MultiOneTransBlock\n保持长度]
+                        F --> G[Pyramid stack\n每层缩短 query_len]
+                        G --> H[Compressed tokens\n[B, ns_len, d_model]]
+                        H --> I[mean pool\n[B, d_model]]
+                        I --> J[Head\nlogits [B, C]]
+                    </pre>
+                </div>
+            </div>
+
+            <div class="sect">
+                <h3>核心机制 1：Mixed Parameterization（“前缀 token 特化 + 其余共享”）</h3>
+                <p>仓库实现里，注意力与 FFN 都采用“混合参数化”：</p>
+                <ul>
+                    <li>前 <code>ns_len</code> 个 token（非序列伪 token）各自有独立的 Q/K/V 投影与独立 FFN。</li>
+                    <li>后面的序列 token 共用一组投影与一组 FFN。</li>
+                    <li>直观理解：非序列 token 语义差异大，需要“各管各的”；序列 token 结构更一致，适合共享以提升泛化并控参数量。</li>
+                </ul>
+            </div>
+
+            <div class="sect">
+                <h3>核心机制 2：Pyramid Compression（逐层减少 Query 长度）</h3>
+                <ul>
+                    <li>每个压缩 block 只让前缀的一部分 token 作为 Query，去 attend 全长度的 K/V。</li>
+                    <li>输出长度 = Query 长度，因此 token 序列会随深度逐层变短，直到只剩 <code>ns_len</code>。</li>
+                    <li>效果：把“序列信息”逐步吸收到前缀 token 里，后续任务只读这几个 token。</li>
+                </ul>
+            </div>
+
+            <div class="sect">
+                <h3>Mask 设计：origin / hard_mask / bimask_*</h3>
+                <p>仓库实现提供 4 种注意力 mask（用于控制不同 token 之间能否互看）：</p>
+                <ul>
+                    <li><strong>origin：</strong>来自原 demo 的“软 bias”式允许区域（非严格 -inf mask）。</li>
+                    <li><strong>hard_mask：</strong>把 origin 的允许区域做成严格 hard mask（禁止区域加 -inf）。</li>
+                    <li><strong>bimask_soft/bimask_hard：</strong>非序列 token 的 Query 全开放；序列 token 的 Query 按严格因果（只看过去）。</li>
+                </ul>
+                <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+                    小提醒：在仓库实现里，<code>origin</code> 与 <code>bimask_soft</code> 更像是对注意力 logits 的“加性偏置”（soft bias），而不是完全禁止的 hard mask；<code>hard_mask</code>/<code>bimask_hard</code> 才会把禁止区域置为 -inf。
+                </p>
+            </div>
+
+            <div class="sect">
+                <h3>Experiments（论文报告，非本仓库 sample）</h3>
+                <div class="grid-2col">
+                    <div class="tech-box">
+                        <h4>实验设置</h4>
+                        <ul>
+                            <li>数据规模：约 <strong>29.1B</strong> impressions；用户约 <strong>27.9M</strong>；物品约 <strong>10.2M</strong>。</li>
+                            <li>任务：CTR 与 CVR（order）两类二分类；指标：AUC 与 UAUC（用户级加权 AUC）。</li>
+                            <li>对比基线（encode-then-interaction）：DCNv2+DIN 起步，逐步加强交互（Wukong/HiFormer/RankMixer）与序列（StackDIN/Transformer/LONGER）。</li>
+                            <li>效率指标：统计 dense 参数量（不含 sparse embedding）与训练 TFLOPs（batch size=2048）。</li>
+                        </ul>
+                    </div>
+                    <div class="tech-box">
+                        <h4>核心结论（摘取关键数值）</h4>
+                        <ul>
+                            <li>统一骨干带来显著离线提升：论文表格报告 OneTransS 相对生产基线（DCNv2+DIN）在 CTR AUC/UAUC 约 <strong>+1.13%/+1.77%</strong>，CVR AUC/UAUC 约 <strong>+0.90%/+1.66%</strong>；OneTransL 进一步到 CTR <strong>+1.53%/+2.79%</strong>，CVR <strong>+1.14%/+3.23%</strong>。</li>
+                            <li>消融显示：<strong>Auto-Split tokenizer</strong> 优于手工分组；<strong>token-specific 参数</strong>优于完全共享；<strong>pyramid stack</strong> 能在几乎不损失效果的前提下降低计算（禁用 pyramid 会显著增加 TFLOPs）。</li>
+                            <li>系统侧：pyramid、跨请求 KV cache、FlashAttention、混精+重算各自对训练/推理的 runtime、显存、p99 latency 有明显贡献。</li>
+                            <li>线上：摘要中报告 OneTrans 带来 <strong>per-user GMV +5.68%</strong> 的 lift（具体线上指标以论文为准）。</li>
+                            <li>延迟对齐：论文示例里 OneTransL 的推理 p99 延迟约 <strong>13.2ms</strong>，与 DCNv2+DIN（约 <strong>13.6ms</strong>）同量级（说明“更大模型”可通过系统优化压到线上预算里）。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sect">
+                <h3>论文 vs 本仓库实现：你应该怎么对齐理解</h3>
+                <ul>
+                    <li><strong>论文版输入更复杂：</strong>包含多行为序列、timestamp-aware 融合、[SEP] 分隔等；本仓库 OneTrans 版本用 TAAC sample 的单矩阵序列来跑通流程。</li>
+                    <li><strong>论文强调的 KV caching / FlashAttention：</strong>这是系统与训练优化；本仓库重点在“结构复现 + 可训练脚本”，未实现生产级 serving 缓存。</li>
+                    <li><strong>因此建议的阅读方式：</strong>先用本仓库把“张量怎么流/压缩怎么做/mask 怎么影响信息流”理解透，再回到论文看系统优化如何把统一骨干落地到真实延迟预算。</li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- HyFormer Section -->
+        <article class="paper-section hyformer">
+            <h2 class="paper-title">HyFormer：用“Query 解码 + Token 混合”把序列建模和交互揉进每一层</h2>
+            <div class="paper-meta">
+                论文核心：反思长序列压缩的 query 设计，提出层内交替的 <strong>Query Decoding</strong> 与 <strong>Query Boosting</strong>。仓库对应实现：<code>Hyformer_Pytorch/main_pytorch.py</code> + <code>Hyformer_Pytorch/models/taac_hyformer.py</code>。
+            </div>
+
+            <div class="sect">
+                <h3>Motivation：HyFormer 在“统一架构”上更进一步的点</h3>
+                <ul>
+                    <li><strong>批评点 1：</strong>只靠少量 query token 去压缩超长序列，query 信息量太贫，导致压缩出来的序列表征“视野狭窄”。</li>
+                    <li><strong>批评点 2：</strong>交互通常发生在压缩之后（late fusion），让序列表示无法早期利用非序列上下文。</li>
+                    <li><strong>HyFormer 的答法：</strong>让“非序列信息 → query → 序列解码”与“跨 query/跨序列/跨特征混合”在每层交替发生，形成更深的双向信息流。</li>
+                </ul>
+            </div>
+
+            <div class="sect">
+                <h3>模块 I/O：从张量形状看 HyFormer（对齐仓库实现）</h3>
+                <div class="grid-2col">
+                    <div class="tech-box">
+                        <h4>输入与分支</h4>
+                        <ul>
+                            <li>输入：<code>non_seq_x</code> 形状 <strong>[B, non_seq_dim]</strong></li>
+                            <li>输入：<code>seq_x</code> 形状 <strong>[B, num_sequences, seq_len, seq_feature_dim]</strong></li>
+                            <li>分支 tokenizer：每个 sequence 分支各自 Linear → <strong>[B, seq_len, d_model]</strong></li>
+                            <li>非序列 tokenizer：Linear → reshape → <strong>[B, num_non_seq_tokens, d_model]</strong></li>
+                        </ul>
+                    </div>
+                    <div class="tech-box">
+                        <h4>输出</h4>
+                        <ul>
+                            <li>每层输出的是“boosted token 序列”：<strong>[B, total_tokens, d_model]</strong></li>
+                            <li>其中 <code>total_tokens = num_sequences * global_tokens_per_seq + num_non_seq_tokens</code></li>
+                            <li>分类：mean pool → head → logits <strong>[B, num_classes]</strong></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="diagram-container">
+                    <pre class="mermaid">
+                    flowchart TD
+                        A[non_seq_x\n[B, non_seq_dim]] --> B[Linear → reshape\nnon_seq_tokens [B, NS, d]]
+                        C[seq_x\n[B, S, L, F]] --> D[per-seq Linear\nseq_tokens[s] [B, L, d]]
+                        D --> E[mean pool per seq\npooled_seq[s] [B, d]]
+                        A --> F[global_info\nconcat(non_seq_x, pooled_seq*)]
+                        E --> F
+                        F --> G[per-seq MLPQueryGenerator\nquery_tokens[s] [B, Q, d]]
+                        subgraph Layer[HyFormer Layer x N]
+                            direction TB
+                            G --> H[Query Decoding\nCross-Attn: query→sequence]
+                            D --> H
+                            B --> I[Query Boosting\nMixer over (decoded_queries + non_seq_tokens)]
+                            H --> I
+                            I --> G
+                        end
+                        I --> O[Output tokens\n[B, total_tokens, d]]
+                    </pre>
+                </div>
+            </div>
+
+            <div class="sect">
+                <h3>核心机制 1：Query Generation（global_info → per-seq queries）</h3>
+                <p>仓库实现选择了一个很“工程友好”的生成方式：</p>
+                <ul>
+                    <li>先对每个序列分支做 masked mean pool，得到每个分支的全局摘要向量。</li>
+                    <li>把 <code>non_seq_x</code> 与所有分支摘要拼成 <code>global_info</code>。</li>
+                    <li>每个序列分支都有独立的 MLP 生成器输出自己的 query token（数量为 <code>global_tokens_per_seq</code>）。</li>
+                </ul>
+            </div>
+
+            <div class="sect">
+                <h3>核心机制 2：Query Decoding（queries cross-attend to sequences）</h3>
+                <ul>
+                    <li>每个序列分支先过一个 sequence encoder（可选 longer / full_transformer / swiglu）。</li>
+                    <li>Query decoder 是 Cross-Attention：<code>query_tokens[s]</code> attend 到该分支编码后的序列 tokens。</li>
+                    <li>输出是 decoded queries：仍然是 <strong>[B, Q, d_model]</strong>，但语义已经“读过序列”。</li>
+                </ul>
+            </div>
+
+            <div class="sect">
+                <h3>核心机制 3：Query Boosting（Mixer 让跨序列/跨特征交互发生在每层）</h3>
+                <ul>
+                    <li>把所有分支的 decoded queries 与 non-seq tokens 拼起来：<strong>[B, total_tokens, d]</strong>。</li>
+                    <li>QueryBoostMixer 做 token mixing：把通道维度重排成“每个 token 拿到一个子空间”，再在 token 维度上做 MLP 混合，最后残差回去。</li>
+                    <li>直观：这一步提供了高效的 cross-query / cross-sequence / query-to-feature 混合通道。</li>
+                </ul>
+            </div>
+
+            <div class="sect">
+                <h3>sequence encoder 的三种模式（仓库实现）</h3>
+                <ul>
+                    <li><strong>longer：</strong>先把长序列做 chunk pool 到 <code>short_seq_len</code>，再用 cross-attn 读全长序列。</li>
+                    <li><strong>full_transformer：</strong>标准 self-attention 编码序列。</li>
+                    <li><strong>swiglu：</strong>不做注意力，只做 SwiGLU FFN（更轻量，适合做对照/消融）。</li>
+                </ul>
+            </div>
+
+            <div class="sect">
+                <h3>Experiments（论文报告，非本仓库 sample）</h3>
+                <div class="grid-2col">
+                    <div class="tech-box">
+                        <h4>实验设置</h4>
+                        <ul>
+                            <li>场景：字节跳动 Douyin Search CTR 预测；数据：约 <strong>3B</strong> samples（70 天日志子集）。</li>
+                            <li>多序列：long-term（最长 3000）、search top-50、feed top-50 三类主序列。</li>
+                            <li>两类基线：传统两阶段（LONGER/Full Transformer + RankMixer/Transformer/Wukong）与统一架构（MTGR/OneTrans）。</li>
+                            <li>指标：Query-level AUC；并报告 dense Params 与训练 FLOPs（batch size=2048）。</li>
+                            <li>实现细节：MLP-Mixer 的 token 数对齐到 16；论文中的 HyFormer 配置示例是 13 个非序列 token + 3 个 global token（每个序列 1 个）。</li>
+                        </ul>
+                    </div>
+                    <div class="tech-box">
+                        <h4>核心结果（摘取关键数值）</h4>
+                        <ul>
+                            <li>总体：HyFormer 在该工业数据上取得最高 AUC（文中表格给出 <strong>0.6489</strong>），并且在 FLOPs 上更省（示例配置约 <strong>3.9×10^12</strong>）。</li>
+                            <li>对比（论文表格示例）：LONGER+RankMixer 约 <strong>0.6478</strong>，Full Transformer+RankMixer 约 <strong>0.6481</strong>；统一架构 MTGR/OneTrans（w/ Full Transformer）约 <strong>0.6483</strong>，仍低于 HyFormer。</li>
+                            <li>消融：query 里去掉“序列 pooling tokens”或去掉非序列上下文会造成 AUC 下滑；把多序列合并/共享 query 会损失（论文示例约 -0.06%）。</li>
+                            <li>Scaling：随着 Params 或 FLOPs 增长，HyFormer 的提升斜率更陡，体现“更高 scaling efficiency”。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sect">
+                <h3>论文 vs 本仓库实现：多序列分支在 sample 数据上怎么落地</h3>
+                <ul>
+                    <li><strong>论文语义分组：</strong>long-term/search/feed 是业务语义明确的三条序列。</li>
+                    <li><strong>本仓库自动分组：</strong>TAAC sample 只有一组扁平的 <code>domain_*</code> 序列通道，于是用 round-robin 的方式均分成 <code>--num-sequences</code> 组，并对齐成 <code>[B, S, L, F]</code>。</li>
+                    <li><strong>影响：</strong>这能让你在公开 sample 上跑通 HyFormer 的“接口与数据流”，但不等同于论文里真正的多序列语义建模难度。</li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- Summary & Comparison Table -->
+        <article class="paper-section compare-section">
+            <h2 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 2rem;">对比：两种“统一”的差异到底在哪？</h2>
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th>维度</th>
+                        <th>OneTrans</th>
+                        <th>HyFormer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>统一方式</strong></td>
+                        <td>把所有 token 拼成一个序列，直接堆 causal Transformer 变体。</td>
+                        <td>保留多序列分支，但每层用 query 解码 + mixer 混合把交互拉进 backbone。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>“序列信息”如何进入非序列？</strong></td>
+                        <td>通过注意力与金字塔压缩，把信息逐层吸进前缀 <code>ns_tokens</code>。</td>
+                        <td>通过 query decoding 把序列读到 queries，再通过 boosting/mixer 在 token 级混合。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>参数化特点</strong></td>
+                        <td>混合参数化：前缀 token 特化 + 其余共享（attention 与 FFN 都如此）。</td>
+                        <td>分支化：每个序列 encoder/decoder 独立；mixer 负责跨分支、跨 query 的混合。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>长序列效率思路</strong></td>
+                        <td>通过 pyramid 逐层缩短 query 长度（降低后续层计算）。</td>
+                        <td>通过“短序列表示 + cross-attn 解码 + 轻量 mixer”在每层做迭代优化。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>本仓库 sample 结果（AUC）</strong></td>
+                        <td><strong class="metrics">0.5116</strong></td>
+                        <td><strong class="metrics">0.5318</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </article>
+
+        <!-- Repro commands -->
+        <article class="paper-section">
+            <h2 class="paper-title">如何用这个仓库快速复现与调参</h2>
+            <div class="paper-meta">
+                如果你要更快理解“模块的输入输出”，建议先跑 shape demo，再跑 5 epoch sample 训练。
+            </div>
+            <div class="sect">
+                <h3>推荐命令</h3>
+                <div class="grid-2col">
+                    <div class="tech-box">
+                        <h4>OneTrans</h4>
+                        <ul>
+                            <li><code>cd OneTrans_Pytorch && python main_pytorch.py</code>（纯 shape demo）</li>
+                            <li><code>python scripts/run_taac2026_sample.py --epochs 5 --batch-size 32 --save-checkpoint</code></li>
+                            <li><code>python scripts/run_taac2026_sample.py --epochs 5 --batch-size 32 --mask_type bimask_hard</code></li>
+                        </ul>
+                    </div>
+                    <div class="tech-box">
+                        <h4>HyFormer</h4>
+                        <ul>
+                            <li><code>cd Hyformer_Pytorch && python main_pytorch.py</code>（纯 shape demo）</li>
+                            <li><code>python scripts/run_taac2026_sample.py --epochs 5 --batch-size 32 --seq-encoder-type longer</code></li>
+                            <li><code>python scripts/run_taac2026_sample.py --epochs 5 --batch-size 32 --seq-encoder-type swiglu</code>（更轻量对照）</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </article>
+<article class="paper-section training-section">
+    <h2 class="paper-title">Training & System Optimizations 深入解析</h2>
+    <div class="paper-meta">两篇论文在训练层面都做了大量系统级优化，以支撑工业级 CTR 预测的规模与时延要求。</div>
+    <div class="sect">
+        <h3>OneTrans 训练优化</h3>
+        <div class="grid-2col">
+            <div class="tech-box">
+                <h4>跨请求 KV 缓存</h4>
+                <p>同一次请求的所有候选 item 共享相同的序列 token（S‑side），在第一次前向计算后将其 <code>Key/Value</code> 对缓存，后续每个候选只需计算 <code>NS‑side</code> 的查询并进行跨注意力。</p>
+            </div>
+            <div class="tech-box">
+                <h4>金字塔查询压缩</h4>
+                <p>每层只保留前缀 <code>Q</code> token（长度随层递减），显著降低 <code>O(L·Q·d)</code> 的注意力计算量。</p>
+            </div>
+        </div>
+        <div class="tech-box" style="margin-top:1rem;">
+            <h4>FlashAttention‑2 & 混合精度</h4>
+            <p>使用 <code>FlashAttention‑2</code> 实现内核级 I/O 合并，配合 <code>BF16/FP16</code> 与激活重算，显著降低显存占用并提升吞吐。</p>
+        </div>
+    </div>
+    <div class="sect">
+        <h3>HyFormer 训练优化</h3>
+        <div class="grid-2col">
+            <div class="tech-box">
+                <h4>稀疏特征压缩 (GPU Pooling)</h4>
+                <p>对长序列特征做稀疏去重，仅在 GPU 上重建完整序列，减少 Host‑to‑GPU 拷贝和显存占用。</p>
+            </div>
+            <div class="tech-box">
+                <h4>异步 AllReduce</h4>
+                <p>梯度聚合与前向/反向计算交叉进行，导致 <code>W_k = W_{k-1} + g_{k-1}</code> 的一步延迟，但实验表明对收敛影响可忽略。</p>
+            </div>
+        </div>
+        <div class="tech-box" style="margin-top:1rem;">
+            <h4>Query Boosting Mixer</h4>
+            <p>每层将 <code>decoded queries</code> 与 <code>non‑seq tokens</code> 拼接后做 MLP‑Mixer，实现跨序列、跨特征的高效信息混合。</p>
+        </div>
+    </div>
+</article>
+    </main>
+
+</body>
+</html>
