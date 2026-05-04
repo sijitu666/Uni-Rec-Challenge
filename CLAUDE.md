@@ -54,6 +54,58 @@ git submodule update --init --recursive
 git submodule update --remote
 ```
 
+## Git Worktree Setup
+
+This repository uses **git worktree** to manage multiple branches simultaneously in separate directories. This allows you to work on different branches in parallel with independent Claude Code sessions.
+
+### Current Worktree Layout
+
+```
+/Users/xiazhiwei/
+├── Uni-Rec-Challenge/              # main branch
+└── Uni-Rec-Challenge-hy3/          # hy3-preview-opt branch
+```
+
+### Common Worktree Commands
+
+```bash
+# List all worktrees
+git worktree list
+
+# Add a new worktree for a branch
+git worktree add <path> <branch-name>
+
+# Remove a worktree
+git worktree remove <path>
+
+# Clean up stale worktrees
+git worktree prune
+```
+
+### Using with Claude Code
+
+Open separate VS Code windows for each worktree:
+
+```bash
+# Window 1 - main branch development
+code /Users/xiazhiwei/Uni-Rec-Challenge
+
+# Window 2 - hy3 preview optimization development
+code /Users/xiazhiwei/Uni-Rec-Challenge-hy3
+```
+
+Each window runs an independent Claude Code session, allowing you to:
+- Work on `main` branch features in one window
+- Work on `hy3-preview-opt` optimizations in another
+- Switch between contexts without stashing or committing
+
+### Worktree Benefits
+
+- **Parallel Development**: Work on multiple branches simultaneously
+- **Context Isolation**: Each worktree has its own working directory
+- **Shared History**: All worktrees share the same `.git` directory
+- **No Stashing**: Switch branches without committing or stashing changes
+
 ## Common Commands
 
 ### Backbone sanity check (shape demo, no data needed)

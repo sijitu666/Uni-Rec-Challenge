@@ -40,6 +40,30 @@ git add Hyformer_Pytorch OneTrans_Pytorch
 git commit -m "Update submodules"
 ```
 
+## Git Worktree
+
+This repository uses **git worktree** for parallel branch development:
+
+```bash
+# List worktrees
+git worktree list
+
+# Add worktree for a branch
+git worktree add ../Uni-Rec-Challenge-feature feature-branch
+
+# Remove worktree
+git worktree remove ../Uni-Rec-Challenge-feature
+```
+
+### Current Worktrees
+
+| Path | Branch | Purpose |
+|------|--------|---------|
+| `/Users/xiazhiwei/Uni-Rec-Challenge` | main | Main development |
+| `/Users/xiazhiwei/Uni-Rec-Challenge-hy3` | hy3-preview-opt | Optimization preview |
+
+Open separate VS Code windows for parallel development with independent Claude Code sessions.
+
 ## Branches
 
 - **main** - Main development branch
